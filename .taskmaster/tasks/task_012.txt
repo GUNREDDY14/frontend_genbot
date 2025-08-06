@@ -1,0 +1,11 @@
+# Task ID: 12
+# Title: Responsive Design & Polish
+# Status: pending
+# Dependencies: 2, 7
+# Priority: medium
+# Description: Ensure application is fully responsive and polished across all devices
+# Details:
+Implement responsive design features: light theme, mobile and tablet responsive layouts, animated bot replies, preview bot in multiple formats (mobile view, desktop view, embedded iframe mode).
+
+# Test Strategy:
+Test across all screen sizes, verify animations work smoothly, test bot preview modes.

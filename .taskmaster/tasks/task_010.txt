@@ -1,0 +1,11 @@
+# Task ID: 10
+# Title: Account Management
+# Status: pending
+# Dependencies: 3, 9
+# Priority: medium
+# Description: Build user account section for profile and subscription management
+# Details:
+Implement account section with: view and edit email/password, display current subscription plan, upgrade plan options, usage limits and monthly query statistics display.
+
+# Test Strategy:
+Test profile updates, verify subscription plan display, test upgrade flows, verify usage statistics accuracy.

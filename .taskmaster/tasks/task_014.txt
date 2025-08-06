@@ -1,0 +1,67 @@
+# Task ID: 14
+# Title: Database Schema & Operations
+# Status: pending
+# Dependencies: 1
+# Priority: high
+# Description: Design and implement PostgreSQL database schema for all application data
+# Details:
+Design database schema for: users, companies, chatbots, conversations, subscriptions, usage analytics, scraped website data. Implement proper indexing, relationships, and data integrity constraints.
+
+# Test Strategy:
+Test database operations, verify data integrity, test complex queries, verify indexing performance.
+
+# Subtasks:
+## 1. Setup Database & ORM [pending]
+### Dependencies: None
+### Description: Configure PostgreSQL database and ORM (Prisma/TypeORM)
+### Details:
+Set up PostgreSQL database, install and configure Prisma or TypeORM, create database connection, and set up migration system.
+
+## 2. Design User & Authentication Schema [pending]
+### Dependencies: None
+### Description: Create database tables for users, sessions, and authentication
+### Details:
+Design users table with authentication fields, sessions table for JWT management, password reset tokens, and social login provider data.
+
+## 3. Create Company & Website Schema [pending]
+### Dependencies: None
+### Description: Design tables for company information and website data
+### Details:
+Create companies table with business information, websites table with URL and metadata, and relationships between users and companies.
+
+## 4. Design Chatbot & Configuration Schema [pending]
+### Dependencies: None
+### Description: Create tables for chatbot data and configurations
+### Details:
+Design chatbots table with configuration settings, chatbot_versions for versioning, personality settings, and training data associations.
+
+## 5. Create Scraped Content Schema [pending]
+### Dependencies: None
+### Description: Design tables for storing scraped website content
+### Details:
+Create scraped_content table with text content, content_metadata for structure, scraping_jobs for job tracking, and content indexing for search.
+
+## 6. Design Conversation & Chat Schema [pending]
+### Dependencies: None
+### Description: Create tables for chat conversations and messages
+### Details:
+Design conversations table for chat sessions, messages table for individual messages, conversation_analytics, and chat performance metrics.
+
+## 7. Create Subscription & Billing Schema [pending]
+### Dependencies: None
+### Description: Design tables for subscription management and billing
+### Details:
+Create subscriptions table with plan details, billing_history for payments, usage_tracking for plan limits, and payment_methods for stored payment info.
+
+## 8. Implement Indexes & Constraints [pending]
+### Dependencies: None
+### Description: Add database indexes, constraints, and optimization
+### Details:
+Create indexes for frequently queried fields, foreign key constraints, unique constraints, check constraints, and query performance optimization.
+
+## 9. Create Database Migrations [pending]
+### Dependencies: None
+### Description: Set up database migration system and initial migrations
+### Details:
+Create initial database migrations, set up migration workflow, add seed data for development, and create backup/restore procedures.
+

@@ -1,0 +1,11 @@
+# Task ID: 4
+# Title: Onboarding Flow
+# Status: pending
+# Dependencies: 3
+# Priority: medium
+# Description: Create post-login onboarding process to collect user company information
+# Details:
+Implement onboarding with input fields for: Company Name, Website URL, Company Type/Category (dropdown), and option to skip onboarding and explore with sample data.
+
+# Test Strategy:
+Test form validation, data persistence, skip functionality, and smooth flow to dashboard.

@@ -1,0 +1,55 @@
+# Task ID: 7
+# Title: Dashboard Implementation
+# Status: pending
+# Dependencies: 6
+# Priority: high
+# Description: Create main dashboard with live chatbot preview and integration tools
+# Details:
+Implement dashboard with: Left panel live chatbot preview with chat bubble interface, typing animations, natural language query processing; Test bot query input below chat panel; Right panel with 'Copy iFrame Embed Code' button, generated embed code text box, Integration Help link with instructions for HTML, WordPress, and future Shopify integration.
+
+# Test Strategy:
+Test chatbot preview functionality, verify embed code generation and copying, test integration instructions.
+
+# Subtasks:
+## 1. Create Dashboard Layout [pending]
+### Dependencies: None
+### Description: Build responsive dashboard layout with left and right panels
+### Details:
+Create responsive dashboard layout using CSS Grid/Flexbox, implement left panel for chatbot preview, right panel for integration tools, and ensure mobile responsiveness.
+
+## 2. Build Live Chatbot Preview [pending]
+### Dependencies: None
+### Description: Implement interactive chatbot preview interface
+### Details:
+Create chat bubble interface, implement real-time messaging, add typing animations, message history display, and connect to the AI chatbot backend.
+
+## 3. Add Test Query Interface [pending]
+### Dependencies: None
+### Description: Create interface for testing chatbot with custom queries
+### Details:
+Build query input field below chat preview, implement query sending functionality, display responses in real-time, and add query history and suggestions.
+
+## 4. Create Embed Code Generator [pending]
+### Dependencies: None
+### Description: Generate and display chatbot embed code
+### Details:
+Generate unique iframe embed code for each user's chatbot, create copy-to-clipboard functionality, display embed code in formatted text box, and update code when chatbot changes.
+
+## 5. Build Integration Help Section [pending]
+### Dependencies: None
+### Description: Provide integration instructions for different platforms
+### Details:
+Create integration help with step-by-step instructions for HTML websites, WordPress integration guide, prepare for future Shopify integration, and include troubleshooting tips.
+
+## 6. Add Dashboard Navigation [pending]
+### Dependencies: None
+### Description: Implement navigation and user controls
+### Details:
+Create dashboard header with navigation menu, user profile dropdown, settings access, logout functionality, and breadcrumb navigation.
+
+## 7. Implement Real-time Updates [pending]
+### Dependencies: None
+### Description: Add real-time updates for chatbot changes
+### Details:
+Implement WebSocket or Server-Sent Events for real-time chatbot updates, automatically refresh preview when chatbot is regenerated, and show loading states during updates.
+

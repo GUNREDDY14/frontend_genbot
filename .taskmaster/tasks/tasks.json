@@ -1,0 +1,542 @@
+{
+  "master": {
+    "metadata": {
+      "created": "2025-01-27T12:00:00.000Z",
+      "description": "Main development tasks for GenBotAI",
+      "updated": "2025-08-06T13:30:47.599Z"
+    },
+    "tasks": [
+      {
+        "id": 1,
+        "title": "Project Setup & Infrastructure",
+        "description": "Set up the development environment, project structure, and basic infrastructure for GenBotAI application",
+        "status": "done",
+        "priority": "high",
+        "dependencies": [],
+        "details": "Set up Next.js project with Tailwind CSS, configure development environment, set up database schema with PostgreSQL, and establish basic project structure following best practices.",
+        "testStrategy": "Verify project builds successfully, database connects, and basic routing works.",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Initialize Next.js Project",
+            "description": "Create new Next.js project with TypeScript and configure basic structure",
+            "status": "done",
+            "details": "Run create-next-app with TypeScript template, configure app directory structure, set up basic routing and layout components."
+          },
+          {
+            "id": 2,
+            "title": "Configure Tailwind CSS",
+            "description": "Install and configure Tailwind CSS with custom theme",
+            "status": "done",
+            "details": "Install Tailwind CSS, PostCSS, and configure tailwind.config.js with custom colors, fonts, and animations for GenBotAI theme."
+          },
+          {
+            "id": 3,
+            "title": "Set up Environment Configuration",
+            "description": "Configure environment variables and development settings",
+            "status": "done",
+            "details": "Create .env files for development and production, configure database URLs, API keys, and other environment-specific settings."
+          },
+          {
+            "id": 4,
+            "title": "Install Core Dependencies",
+            "description": "Install and configure essential packages for the project",
+            "status": "done",
+            "details": "Install packages for authentication (NextAuth.js), database (Prisma/PostgreSQL), API client, form handling, and other core dependencies."
+          },
+          {
+            "id": 5,
+            "title": "Setup Project Structure",
+            "description": "Create organized folder structure for scalable development",
+            "status": "done",
+            "details": "Create folders for components, pages, API routes, utilities, types, and establish consistent file naming conventions."
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Landing Page Implementation",
+        "description": "Create an attractive, responsive landing page with clear value proposition and call-to-action buttons",
+        "status": "done",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "details": "Implement landing page with: clear value proposition messaging, 'Try the Bot' and 'Get Started' CTA buttons, brief explanation of chatbot use cases, links to Login/Signup and Pricing, smooth animations, clean modern UI, and fully responsive design.",
+        "testStrategy": "Test responsiveness across devices, verify all links work, check animations and UI polish."
+      },
+      {
+        "id": 3,
+        "title": "Authentication System",
+        "description": "Implement secure user authentication with email/password and optional social login",
+        "status": "done",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "details": "Build authentication system with: secure signup/login via email and password, JWT token management, optional social login (Google, GitHub) for MVP, password reset functionality, and proper session management.",
+        "testStrategy": "Test user registration, login, logout, password reset, and social login flows. Verify JWT tokens are properly handled.",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Setup NextAuth.js Configuration",
+            "description": "Configure NextAuth.js with providers and database adapter",
+            "status": "done",
+            "details": "Install NextAuth.js, configure providers (credentials, Google, GitHub), set up database adapter for session management, and configure JWT settings."
+          },
+          {
+            "id": 2,
+            "title": "Create User Registration API",
+            "description": "Build API endpoint for user registration with validation",
+            "status": "done",
+            "details": "Create /api/auth/register endpoint with email validation, password hashing using bcrypt, duplicate email checking, and proper error handling."
+          },
+          {
+            "id": 3,
+            "title": "Implement Login/Logout Functionality",
+            "description": "Create secure login and logout system",
+            "status": "done",
+            "details": "Implement credentials provider for email/password login, session management, logout functionality, and proper JWT token handling."
+          },
+          {
+            "id": 4,
+            "title": "Add Social Login Integration",
+            "description": "Integrate Google and GitHub OAuth providers",
+            "status": "done",
+            "details": "Configure Google and GitHub OAuth providers, handle OAuth callbacks, merge social accounts with existing users, and manage profile data."
+          },
+          {
+            "id": 5,
+            "title": "Build Password Reset System",
+            "description": "Implement secure password reset functionality",
+            "status": "done",
+            "details": "Create password reset request API, email token generation, secure reset token validation, and password update functionality."
+          },
+          {
+            "id": 6,
+            "title": "Create Auth UI Components",
+            "description": "Build login, signup, and password reset forms",
+            "status": "done",
+            "details": "Create responsive login form, signup form, password reset form, form validation with proper error messages, and loading states."
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Onboarding Flow",
+        "description": "Create post-login onboarding process to collect user company information",
+        "status": "done",
+        "priority": "medium",
+        "dependencies": [
+          3
+        ],
+        "details": "Implement onboarding with input fields for: Company Name, Website URL, Company Type/Category (dropdown), and option to skip onboarding and explore with sample data.",
+        "testStrategy": "Test form validation, data persistence, skip functionality, and smooth flow to dashboard."
+      },
+      {
+        "id": 5,
+        "title": "Web Scraping Engine",
+        "description": "Build backend service to automatically scrape user websites and extract content",
+        "status": "done",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "details": "Implement web scraping using Playwright/Puppeteer to: scrape user's website content, extract relevant text and structure, handle various website formats, implement error handling for inaccessible sites, store scraped data efficiently.",
+        "testStrategy": "Test scraping various website types, verify data extraction accuracy, test error handling for protected/inaccessible sites.",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Setup Playwright/Puppeteer",
+            "description": "Install and configure web scraping framework",
+            "status": "done",
+            "details": "Install Playwright with browser dependencies, configure headless browser settings, set up user agents and request headers for web scraping."
+          },
+          {
+            "id": 2,
+            "title": "Create Website Content Extractor",
+            "description": "Build core content extraction logic",
+            "status": "done",
+            "details": "Implement text extraction from various HTML elements, extract navigation structure, identify main content areas, and filter out irrelevant content like ads."
+          },
+          {
+            "id": 3,
+            "title": "Handle Dynamic Content",
+            "description": "Support websites with JavaScript-rendered content",
+            "status": "done",
+            "details": "Implement waiting for dynamic content to load, handle Single Page Applications (SPAs), manage AJAX-loaded content, and navigate through multiple pages."
+          },
+          {
+            "id": 4,
+            "title": "Implement Error Handling",
+            "description": "Add robust error handling for various failure scenarios",
+            "status": "done",
+            "details": "Handle inaccessible sites, timeout errors, blocked requests, malformed HTML, and provide meaningful error messages to users."
+          },
+          {
+            "id": 5,
+            "title": "Create Data Storage System",
+            "description": "Store and organize scraped website data",
+            "status": "done",
+            "details": "Design database schema for scraped content, implement data cleaning and normalization, create indexing for fast retrieval, and manage data updates."
+          },
+          {
+            "id": 6,
+            "title": "Build Scraping API Endpoints",
+            "description": "Create API endpoints for triggering and managing scraping jobs",
+            "status": "done",
+            "details": "Create API endpoints for starting scraping jobs, checking scraping status, retrieving scraped data, and managing scraping queues."
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "AI Chatbot Generation",
+        "description": "Create AI-powered chatbot generation system using scraped website content",
+        "status": "pending",
+        "priority": "high",
+        "dependencies": [
+          5
+        ],
+        "details": "Build chatbot generation system that: processes scraped website content, generates personalized AI responses using OpenAI API/LLM, creates chatbot personality based on website content, implements fallback responses for unknown queries.",
+        "testStrategy": "Test chatbot responses with various queries, verify personalization based on website content, test fallback mechanisms.",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Setup OpenAI API Integration",
+            "description": "Configure OpenAI API for chatbot generation",
+            "status": "pending",
+            "details": "Set up OpenAI API client, configure API keys, implement rate limiting, error handling, and cost monitoring for API usage."
+          },
+          {
+            "id": 2,
+            "title": "Build Content Processing Pipeline",
+            "description": "Process scraped website content for AI training",
+            "status": "pending",
+            "details": "Create content preprocessing system to clean and structure scraped data, extract key information, create embeddings, and prepare content for AI model context."
+          },
+          {
+            "id": 3,
+            "title": "Create Chatbot Personality Generator",
+            "description": "Generate unique chatbot personality based on website content",
+            "status": "pending",
+            "details": "Analyze website tone, style, and content to create appropriate chatbot personality, configure system prompts, and establish conversation guidelines."
+          },
+          {
+            "id": 4,
+            "title": "Implement Query Processing System",
+            "description": "Build system to process and understand user queries",
+            "status": "pending",
+            "details": "Create query preprocessing, intent recognition, context management, and prepare queries for AI model processing with relevant website context."
+          },
+          {
+            "id": 5,
+            "title": "Build Response Generation Engine",
+            "description": "Generate contextual AI responses using website data",
+            "status": "pending",
+            "details": "Implement AI response generation using website content as context, ensure responses are relevant and helpful, and maintain conversation continuity."
+          },
+          {
+            "id": 6,
+            "title": "Create Fallback Response System",
+            "description": "Handle queries that cannot be answered from website content",
+            "status": "pending",
+            "details": "Implement fallback responses for unknown queries, graceful degradation when content is insufficient, and mechanisms to escalate to human support."
+          },
+          {
+            "id": 7,
+            "title": "Add Response Quality Monitoring",
+            "description": "Monitor and improve chatbot response quality",
+            "status": "pending",
+            "details": "Implement response quality scoring, user feedback collection, conversation analytics, and continuous improvement mechanisms."
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Dashboard Implementation",
+        "description": "Create main dashboard with live chatbot preview and integration tools",
+        "status": "pending",
+        "priority": "high",
+        "dependencies": [
+          6
+        ],
+        "details": "Implement dashboard with: Left panel live chatbot preview with chat bubble interface, typing animations, natural language query processing; Test bot query input below chat panel; Right panel with 'Copy iFrame Embed Code' button, generated embed code text box, Integration Help link with instructions for HTML, WordPress, and future Shopify integration.",
+        "testStrategy": "Test chatbot preview functionality, verify embed code generation and copying, test integration instructions.",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create Dashboard Layout",
+            "description": "Build responsive dashboard layout with left and right panels",
+            "status": "pending",
+            "details": "Create responsive dashboard layout using CSS Grid/Flexbox, implement left panel for chatbot preview, right panel for integration tools, and ensure mobile responsiveness."
+          },
+          {
+            "id": 2,
+            "title": "Build Live Chatbot Preview",
+            "description": "Implement interactive chatbot preview interface",
+            "status": "pending",
+            "details": "Create chat bubble interface, implement real-time messaging, add typing animations, message history display, and connect to the AI chatbot backend."
+          },
+          {
+            "id": 3,
+            "title": "Add Test Query Interface",
+            "description": "Create interface for testing chatbot with custom queries",
+            "status": "pending",
+            "details": "Build query input field below chat preview, implement query sending functionality, display responses in real-time, and add query history and suggestions."
+          },
+          {
+            "id": 4,
+            "title": "Create Embed Code Generator",
+            "description": "Generate and display chatbot embed code",
+            "status": "pending",
+            "details": "Generate unique iframe embed code for each user's chatbot, create copy-to-clipboard functionality, display embed code in formatted text box, and update code when chatbot changes."
+          },
+          {
+            "id": 5,
+            "title": "Build Integration Help Section",
+            "description": "Provide integration instructions for different platforms",
+            "status": "pending",
+            "details": "Create integration help with step-by-step instructions for HTML websites, WordPress integration guide, prepare for future Shopify integration, and include troubleshooting tips."
+          },
+          {
+            "id": 6,
+            "title": "Add Dashboard Navigation",
+            "description": "Implement navigation and user controls",
+            "status": "pending",
+            "details": "Create dashboard header with navigation menu, user profile dropdown, settings access, logout functionality, and breadcrumb navigation."
+          },
+          {
+            "id": 7,
+            "title": "Implement Real-time Updates",
+            "description": "Add real-time updates for chatbot changes",
+            "status": "pending",
+            "details": "Implement WebSocket or Server-Sent Events for real-time chatbot updates, automatically refresh preview when chatbot is regenerated, and show loading states during updates."
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "Embed Code Generator",
+        "description": "Create system to generate and manage chatbot embed codes for different platforms",
+        "status": "pending",
+        "priority": "medium",
+        "dependencies": [
+          6
+        ],
+        "details": "Build embed code generation system that: creates customizable iframe embed codes, provides integration instructions for different platforms (HTML, WordPress), generates unique chatbot instances per user, handles cross-origin communication.",
+        "testStrategy": "Test embed code on various platforms, verify chatbot functionality when embedded, test cross-origin communication."
+      },
+      {
+        "id": 9,
+        "title": "Pricing Page",
+        "description": "Implement pricing page with three-tier subscription model",
+        "status": "pending",
+        "priority": "medium",
+        "dependencies": [
+          2
+        ],
+        "details": "Create pricing page with three tiers: Free (limited queries, basic chatbot), Pro (increased limits, basic customization), Enterprise (full access, branding, analytics). Include clear feature comparisons and upgrade CTAs.",
+        "testStrategy": "Test pricing display, verify tier comparisons are clear, test upgrade flow integration."
+      },
+      {
+        "id": 10,
+        "title": "Account Management",
+        "description": "Build user account section for profile and subscription management",
+        "status": "pending",
+        "priority": "medium",
+        "dependencies": [
+          3,
+          9
+        ],
+        "details": "Implement account section with: view and edit email/password, display current subscription plan, upgrade plan options, usage limits and monthly query statistics display.",
+        "testStrategy": "Test profile updates, verify subscription plan display, test upgrade flows, verify usage statistics accuracy."
+      },
+      {
+        "id": 11,
+        "title": "Subscription & Payment System",
+        "description": "Integrate payment processing and subscription management",
+        "status": "pending",
+        "priority": "high",
+        "dependencies": [
+          9
+        ],
+        "details": "Implement subscription system with: payment processing integration (Stripe/similar), subscription plan management, usage tracking and limits, billing cycle management, upgrade/downgrade functionality.",
+        "testStrategy": "Test payment flows, verify subscription upgrades/downgrades, test usage limit enforcement, verify billing accuracy."
+      },
+      {
+        "id": 12,
+        "title": "Responsive Design & Polish",
+        "description": "Ensure application is fully responsive and polished across all devices",
+        "status": "pending",
+        "priority": "medium",
+        "dependencies": [
+          2,
+          7
+        ],
+        "details": "Implement responsive design features: light theme, mobile and tablet responsive layouts, animated bot replies, preview bot in multiple formats (mobile view, desktop view, embedded iframe mode).",
+        "testStrategy": "Test across all screen sizes, verify animations work smoothly, test bot preview modes."
+      },
+      {
+        "id": 13,
+        "title": "Backend API Development",
+        "description": "Develop robust backend API using FastAPI/Node.js",
+        "status": "pending",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "details": "Build backend API with: RESTful endpoints for all features, proper error handling, API rate limiting, data validation, secure authentication middleware, database integration with PostgreSQL.",
+        "testStrategy": "Test all API endpoints, verify error handling, test rate limiting, validate data persistence.",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Setup API Framework",
+            "description": "Initialize FastAPI/Node.js backend with basic configuration",
+            "status": "pending",
+            "details": "Set up FastAPI or Express.js server, configure CORS, middleware setup, environment configuration, and basic project structure."
+          },
+          {
+            "id": 2,
+            "title": "Create User Management APIs",
+            "description": "Build APIs for user registration, authentication, and profile management",
+            "status": "pending",
+            "details": "Create endpoints for user registration, login, profile updates, password changes, and user data retrieval with proper validation."
+          },
+          {
+            "id": 3,
+            "title": "Build Chatbot Management APIs",
+            "description": "Create APIs for chatbot creation, configuration, and management",
+            "status": "pending",
+            "details": "Implement endpoints for creating chatbots, updating configurations, retrieving chatbot data, and managing chatbot lifecycle."
+          },
+          {
+            "id": 4,
+            "title": "Implement Scraping APIs",
+            "description": "Create APIs for website scraping operations",
+            "status": "pending",
+            "details": "Build endpoints to trigger website scraping, check scraping status, retrieve scraped data, and manage scraping job queues."
+          },
+          {
+            "id": 5,
+            "title": "Create Chat & Conversation APIs",
+            "description": "Build APIs for handling chatbot conversations",
+            "status": "pending",
+            "details": "Implement endpoints for sending messages to chatbots, retrieving conversation history, managing chat sessions, and handling real-time chat."
+          },
+          {
+            "id": 6,
+            "title": "Add Subscription & Billing APIs",
+            "description": "Create APIs for subscription management and billing",
+            "status": "pending",
+            "details": "Build endpoints for subscription plans, payment processing, usage tracking, billing history, and subscription upgrades/downgrades."
+          },
+          {
+            "id": 7,
+            "title": "Implement Rate Limiting & Security",
+            "description": "Add rate limiting, authentication middleware, and security measures",
+            "status": "pending",
+            "details": "Implement JWT authentication middleware, API rate limiting, input validation, security headers, and request sanitization."
+          },
+          {
+            "id": 8,
+            "title": "Add Error Handling & Logging",
+            "description": "Implement comprehensive error handling and logging system",
+            "status": "pending",
+            "details": "Create centralized error handling, structured logging, error monitoring, API response standardization, and debugging tools."
+          }
+        ]
+      },
+      {
+        "id": 14,
+        "title": "Database Schema & Operations",
+        "description": "Design and implement PostgreSQL database schema for all application data",
+        "status": "pending",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "details": "Design database schema for: users, companies, chatbots, conversations, subscriptions, usage analytics, scraped website data. Implement proper indexing, relationships, and data integrity constraints.",
+        "testStrategy": "Test database operations, verify data integrity, test complex queries, verify indexing performance.",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Setup Database & ORM",
+            "description": "Configure PostgreSQL database and ORM (Prisma/TypeORM)",
+            "status": "pending",
+            "details": "Set up PostgreSQL database, install and configure Prisma or TypeORM, create database connection, and set up migration system."
+          },
+          {
+            "id": 2,
+            "title": "Design User & Authentication Schema",
+            "description": "Create database tables for users, sessions, and authentication",
+            "status": "pending",
+            "details": "Design users table with authentication fields, sessions table for JWT management, password reset tokens, and social login provider data."
+          },
+          {
+            "id": 3,
+            "title": "Create Company & Website Schema",
+            "description": "Design tables for company information and website data",
+            "status": "pending",
+            "details": "Create companies table with business information, websites table with URL and metadata, and relationships between users and companies."
+          },
+          {
+            "id": 4,
+            "title": "Design Chatbot & Configuration Schema",
+            "description": "Create tables for chatbot data and configurations",
+            "status": "pending",
+            "details": "Design chatbots table with configuration settings, chatbot_versions for versioning, personality settings, and training data associations."
+          },
+          {
+            "id": 5,
+            "title": "Create Scraped Content Schema",
+            "description": "Design tables for storing scraped website content",
+            "status": "pending",
+            "details": "Create scraped_content table with text content, content_metadata for structure, scraping_jobs for job tracking, and content indexing for search."
+          },
+          {
+            "id": 6,
+            "title": "Design Conversation & Chat Schema",
+            "description": "Create tables for chat conversations and messages",
+            "status": "pending",
+            "details": "Design conversations table for chat sessions, messages table for individual messages, conversation_analytics, and chat performance metrics."
+          },
+          {
+            "id": 7,
+            "title": "Create Subscription & Billing Schema",
+            "description": "Design tables for subscription management and billing",
+            "status": "pending",
+            "details": "Create subscriptions table with plan details, billing_history for payments, usage_tracking for plan limits, and payment_methods for stored payment info."
+          },
+          {
+            "id": 8,
+            "title": "Implement Indexes & Constraints",
+            "description": "Add database indexes, constraints, and optimization",
+            "status": "pending",
+            "details": "Create indexes for frequently queried fields, foreign key constraints, unique constraints, check constraints, and query performance optimization."
+          },
+          {
+            "id": 9,
+            "title": "Create Database Migrations",
+            "description": "Set up database migration system and initial migrations",
+            "status": "pending",
+            "details": "Create initial database migrations, set up migration workflow, add seed data for development, and create backup/restore procedures."
+          }
+        ]
+      },
+      {
+        "id": 15,
+        "title": "Deployment & DevOps",
+        "description": "Set up production deployment pipeline using Docker and cloud hosting",
+        "status": "pending",
+        "priority": "medium",
+        "dependencies": [
+          13,
+          14
+        ],
+        "details": "Implement deployment pipeline with: Docker containerization, cloud hosting setup (Vercel/AWS/Render), CI/CD pipeline, environment configuration, monitoring and logging, backup strategies.",
+        "testStrategy": "Test deployment process, verify production environment, test rollback procedures, verify monitoring and alerts."
+      }
+    ]
+  }
+}

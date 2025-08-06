@@ -1,0 +1,11 @@
+# Task ID: 8
+# Title: Embed Code Generator
+# Status: pending
+# Dependencies: 6
+# Priority: medium
+# Description: Create system to generate and manage chatbot embed codes for different platforms
+# Details:
+Build embed code generation system that: creates customizable iframe embed codes, provides integration instructions for different platforms (HTML, WordPress), generates unique chatbot instances per user, handles cross-origin communication.
+
+# Test Strategy:
+Test embed code on various platforms, verify chatbot functionality when embedded, test cross-origin communication.

@@ -1,0 +1,151 @@
+# Product Requirements Document (PRD)
+
+## Product Name
+**GenBotAI**
+
+## Overview
+GenBotAI is a web application that enables businesses to easily integrate an intelligent, generative AI chatbot into their websites. It enhances digital marketing, improves user experience, and boosts conversion rates by helping users find products or information faster.
+
+---
+
+## Goals
+- Help businesses embed a smart chatbot without technical complexity.
+- Improve website user engagement and navigation.
+- Provide tiered access to support different business sizes.
+
+---
+
+## Target Users
+- E-commerce businesses
+- SaaS companies
+- Agencies and service providers
+- Any website with customer-facing services or information
+
+---
+
+## Key Features
+
+###  Landing Page
+- **Clear Value Proposition** with concise messaging.
+- **Call-to-Action (CTA)** buttons: "Try the Bot", "Get Started".
+- **Brief explanation** of chatbot use cases (e.g., "Help users find products instantly", "24/7 site assistant").
+- Links to:
+  - **Login / Signup**
+  - **Pricing**
+- Smooth animations and clean modern UI.
+- Fully **responsive design**.
+
+---
+
+###  Authentication
+- Secure **Signup/Login** via email and password.
+- Optional social login (Google, GitHub) for MVP.
+
+---
+
+###  Onboarding Flow (Post-Login)
+- Input fields:
+  - **Company Name**
+  - **Website URL**
+  - **Company Type / Category** (Dropdown)
+- Option to:
+  - **Skip onboarding** and explore with sample data
+
+---
+
+### Bot Generation (Backend)
+- Automatically scrape the user’s website.
+- Generate a **personalized AI chatbot** in the background based on website content.
+
+---
+
+###  Dashboard
+#### Layout:
+- **Left Panel**: Live Chatbot Preview
+  - Chat bubble interface
+  - Typing animations
+  - Accepts natural language queries
+  - Responds using scraped data or predefined intents
+
+- **Below Chat Panel**:
+  - “**Test this bot**” query input
+  - User can simulate end-user queries
+
+#### Right Panel / Additional Section:
+- “**Copy iFrame Embed Code**” button
+- Text box showing generated embed code
+- “**Integration Help**” link with instructions for:
+  - HTML sites
+  - WordPress
+  - Shopify (future)
+
+---
+
+###  Pricing Page
+3 Tiers:
+1. **Free**
+   - Limited queries per month
+   - Basic chatbot
+2. **Pro**
+   - Increased query limits
+   - Basic customization
+3. **Enterprise**
+   - Full access
+   - Branding & styling options
+   - Advanced analytics
+
+---
+
+### 👤 Account Section
+- View & edit:
+  - Email
+  - Password
+- See current **subscription plan**
+- Option to **upgrade plan**
+- (Optional) View **usage limits** and monthly query stats
+
+---
+
+## MVP Polish Features
+
+-  **Light theme**
+-  **Mobile and tablet responsive layout**
+-  **Animated bot replies** for a human-like feel
+-  Option to **preview bot in multiple formats**:
+  - Mobile view
+  - Desktop view
+  - Embedded iframe mode
+
+---
+
+## Technical Considerations
+
+- **Frontend**: Next.js + Tailwind CSS (with animations and responsive design)
+- **Backend**: FastAPI / Node.js
+- **Database**: PostgreSQL
+- **Authentication**: JWT + OAuth (for social login)
+- **Web scraping**: Headless browser (Playwright / Puppeteer)
+- **Chatbot**: OpenAI API / LLM-based response engine
+- **Deployment**: Docker + Cloud hosting (Vercel / AWS / Render)
+
+---
+
+## Success Metrics
+
+- # of businesses integrating the chatbot
+- User engagement rate via chatbot
+- Conversion rate improvement post-integration
+- Monthly active users
+- Query volume per user per plan
+
+---
+
+## Future Enhancements
+
+- Drag & drop chatbot customization UI
+- Multi-language bot support
+- Bot training with file uploads / custom FAQs
+- Analytics dashboard for user queries
+- Chatbot tone customization
+
+---

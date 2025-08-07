@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Bot, Settings, Palette, Eye, Plus, Trash2, Sparkles, Zap, Globe, MessageCircle, Upload, FileText, X } from "lucide-react";
+import { ArrowLeft, Bot, Settings, Palette, Eye, Plus, Trash2, Sparkles, Zap, Globe, MessageCircle, Upload, FileText, X, Mic, MicOff, Volume2 } from "lucide-react";
 
 interface ChatbotFormData {
   name: string;
@@ -41,6 +41,11 @@ export default function CreateChatbotPage() {
   const [threadId, setThreadId] = useState<string>('');
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
+  const [showVoiceScreen, setShowVoiceScreen] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+  const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
+  const [isProcessingVoice, setIsProcessingVoice] = useState(false);
   
   const [formData, setFormData] = useState<ChatbotFormData>({
     name: '',
@@ -1625,6 +1630,236 @@ export default function CreateChatbotPage() {
     }
   };
 
+  // Voice recording functions
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+      
+      const chunks: Blob[] = [];
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          chunks.push(event.data);
+        }
+      };
+      
+      recorder.onstop = () => {
+        const audioBlob = new Blob(chunks, { type: 'audio/webm' });
+        sendVoiceMessage(audioBlob);
+      };
+      
+      setAudioChunks([]);
+      setMediaRecorder(recorder);
+      setIsRecording(true);
+      recorder.start();
+      
+    } catch (error) {
+      console.error('Error starting recording:', error);
+      toast({
+        title: "Recording Error",
+        description: "Could not access microphone. Please check permissions.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorder && isRecording) {
+      mediaRecorder.stop();
+      mediaRecorder.stream.getTracks().forEach(track => track.stop());
+      setIsRecording(false);
+      setMediaRecorder(null);
+    }
+  };
+
+  const sendVoiceMessage = async (audioBlob: Blob) => {
+    if (!botData || isProcessingVoice) return;
+
+    setIsProcessingVoice(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', audioBlob, 'audio.webm');
+      formData.append('company_id', companyId);
+      formData.append('thread_id', threadId);
+      formData.append('chatbot_id', chatbotId);
+      formData.append('uuid', '');
+
+      console.log('Sending voice message with form data');
+
+      const response = await fetch('http://127.0.0.1:8000/speech_agent/speech-to-speech', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Voice API request failed:', errorText);
+        throw new Error(`Voice API failed: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('Voice API response:', result);
+
+      // Add user message (transcribed text)
+      const userMessage = {
+        id: generateUUID(),
+        text: result.prompt_text,
+        isUser: true,
+        timestamp: new Date()
+      };
+      setChatMessages(prev => [...prev, userMessage]);
+
+      // Add bot response
+      const botResponse = {
+        id: generateUUID(),
+        text: result.response_text,
+        isUser: false,
+        timestamp: new Date()
+      };
+      setChatMessages(prev => [...prev, botResponse]);
+
+      // Play the audio response
+      if (result.audio_base64) {
+        const audioData = `data:audio/wav;base64,${result.audio_base64}`;
+        const audio = new Audio(audioData);
+        audio.play().catch(error => {
+          console.error('Error playing audio:', error);
+        });
+      }
+
+    } catch (error) {
+      const errorObj = error as Error;
+      console.error('Error processing voice message:', errorObj);
+      
+      toast({
+        title: "Voice Processing Failed",
+        description: "Could not process your voice message. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessingVoice(false);
+    }
+  };
+
+  // If showing voice screen, render the voice interface
+  if (showVoiceScreen && botData) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-indigo-100">
+        {/* Voice Header */}
+        <div className="border-b bg-white shadow-sm">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between py-4">
+              <div className="flex items-center gap-4">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowVoiceScreen(false)}
+                  className="hover:bg-gray-100 transition-all duration-200"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back to Chat
+                </Button>
+                <div className="flex items-center gap-3">
+                  <div 
+                    className="w-10 h-10 rounded-full flex items-center justify-center shadow-lg"
+                    style={{ backgroundColor: botData.appearance.color_code }}
+                  >
+                    <Volume2 className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h1 className="text-xl font-bold text-gray-900">Voice Chat with {botData.basic_info.chatbot_name}</h1>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                      <span className="text-sm text-gray-600">Voice mode • Tap to speak</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Voice Interface */}
+        <div className="flex-1 flex items-center justify-center min-h-[calc(100vh-100px)]">
+          <div className="text-center space-y-8">
+            {/* Voice Animation */}
+            <div className="relative">
+              <div 
+                className={`w-32 h-32 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 ${
+                  isRecording ? 'scale-110 animate-pulse' : 'hover:scale-105'
+                }`}
+                style={{ 
+                  backgroundColor: isRecording ? '#ef4444' : botData.appearance.color_code,
+                  boxShadow: isRecording ? '0 0 0 0 rgba(239, 68, 68, 0.7)' : undefined
+                }}
+              >
+                {isProcessingVoice ? (
+                  <div className="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+                ) : isRecording ? (
+                  <MicOff className="w-12 h-12 text-white" />
+                ) : (
+                  <Mic className="w-12 h-12 text-white" />
+                )}
+              </div>
+              
+              {/* Recording Animation Rings */}
+              {isRecording && (
+                <>
+                  <div className="absolute inset-0 rounded-full border-4 border-red-400 animate-ping"></div>
+                  <div className="absolute inset-0 rounded-full border-2 border-red-300 animate-ping" style={{ animationDelay: '0.5s' }}></div>
+                </>
+              )}
+            </div>
+
+            {/* Status Text */}
+            <div className="space-y-2">
+              <h2 className="text-2xl font-bold text-gray-900">
+                {isProcessingVoice ? 'Processing...' : isRecording ? 'Listening...' : 'Tap to speak'}
+              </h2>
+              <p className="text-gray-600 max-w-md mx-auto">
+                {isProcessingVoice 
+                  ? 'Converting your speech and generating response...'
+                  : isRecording 
+                    ? 'Speak now, tap again when finished'
+                    : 'Have a voice conversation with your AI assistant'
+                }
+              </p>
+            </div>
+
+            {/* Record Button */}
+            <Button
+              onClick={isRecording ? stopRecording : startRecording}
+              disabled={isProcessingVoice}
+              className={`w-20 h-20 rounded-full text-white shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed ${
+                isRecording ? 'bg-red-500 hover:bg-red-600' : ''
+              }`}
+              style={{ 
+                backgroundColor: isRecording ? undefined : botData.appearance.color_code 
+              }}
+            >
+              {isProcessingVoice ? (
+                <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+              ) : isRecording ? (
+                <div className="w-6 h-6 bg-white rounded-sm"></div>
+              ) : (
+                <Mic className="w-8 h-8" />
+              )}
+            </Button>
+
+            {/* Instructions */}
+            <div className="max-w-md mx-auto text-sm text-gray-500 space-y-1">
+              <p>• Tap the microphone to start recording</p>
+              <p>• Speak your question or message</p>
+              <p>• Tap again to stop and send</p>
+              <p>• The AI will respond with voice and text</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // If showing chat screen, render the chat interface
   if (showChatScreen && botData) {
     return (
@@ -1714,11 +1949,7 @@ export default function CreateChatbotPage() {
                         {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </div>
                     </div>
-                    {message.isUser && (
-                      <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center ml-3 shadow-md flex-shrink-0">
-                        <span className="text-sm font-medium text-gray-600">You</span>
-                      </div>
-                    )}
+
                   </div>
                 ))}
                 <div ref={messagesEndRef} />
@@ -1742,9 +1973,17 @@ export default function CreateChatbotPage() {
                   }}
                 />
                 <Button
+                  onClick={() => setShowVoiceScreen(true)}
+                  disabled={isSendingMessage}
+                  variant="outline"
+                  className="px-4 py-3 rounded-full border-gray-300 hover:bg-gray-50 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Mic className="w-4 h-4 text-gray-600" />
+                </Button>
+                <Button
                   onClick={(e) => {
                     if (!isSendingMessage) {
-                      const input = e.currentTarget.previousElementSibling as HTMLInputElement;
+                      const input = e.currentTarget.previousElementSibling?.previousElementSibling as HTMLInputElement;
                       sendChatMessage(input.value);
                       input.value = '';
                     }

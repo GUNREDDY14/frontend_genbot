@@ -46,6 +46,7 @@ export default function CreateChatbotPage() {
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
   const [isProcessingVoice, setIsProcessingVoice] = useState(false);
+  const [generatedIframe, setGeneratedIframe] = useState<string>('');
   
   const [formData, setFormData] = useState<ChatbotFormData>({
     name: '',
@@ -164,250 +165,9 @@ export default function CreateChatbotPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
 
-  // Generate iframe embed code
-  const generateIframeCode = () => {
-    return `<!-- GenBotAI Chatbot Embed Code -->
-<div id="genbot-chatbot-${chatbotId}"></div>
-<script>
-  (function() {
-    // Create chatbot container
-    const chatbotContainer = document.createElement('div');
-    chatbotContainer.id = 'genbot-widget-container';
-    chatbotContainer.style.cssText = \`
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      width: 60px;
-      height: 60px;
-      z-index: 9999;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-    \`;
-    
-    // Create toggle button
-    const toggleButton = document.createElement('div');
-    toggleButton.style.cssText = \`
-      width: 60px;
-      height: 60px;
-      background: linear-gradient(135deg, ${formData.primaryColor}, ${formData.primaryColor}dd);
-      border-radius: 50%;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-      transition: all 0.3s ease;
-      position: relative;
-      overflow: hidden;
-    \`;
-    
-    // Add bot icon
-    toggleButton.innerHTML = \`
-      <svg width="28" height="28" fill="white" viewBox="0 0 24 24">
-        <path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 1H5C3.89 1 3 1.89 3 3V19C3 20.1 3.9 21 5 21H11V19H5V3H13V9H21ZM14 13V11H16V13H18V15H16V17H14V15H12V13H14Z"/>
-      </svg>
-    \`;
-    
-    // Create chat window
-    const chatWindow = document.createElement('div');
-    chatWindow.style.cssText = \`
-      position: absolute;
-      bottom: 70px;
-      right: 0;
-      width: 350px;
-      height: 500px;
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 8px 30px rgba(0,0,0,0.12);
-      display: none;
-      flex-direction: column;
-      overflow: hidden;
-      border: 1px solid #e5e7eb;
-    \`;
-    
-    // Chat header
-    const chatHeader = document.createElement('div');
-    chatHeader.style.cssText = \`
-      background: linear-gradient(135deg, ${formData.primaryColor}, ${formData.primaryColor}dd);
-      color: white;
-      padding: 16px;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    \`;
-    chatHeader.innerHTML = \`
-      <div style="width: 32px; height: 32px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-        <svg width="18" height="18" fill="white" viewBox="0 0 24 24">
-          <path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 1H5C3.89 1 3 1.89 3 3V19C3 20.1 3.9 21 5 21H11V19H5V3H13V9H21ZM14 13V11H16V13H18V15H16V17H14V15H12V13H14Z"/>
-        </svg>
-      </div>
-      <div>
-        <div style="font-size: 16px;">${formData.name || 'AI Assistant'}</div>
-        <div style="font-size: 12px; opacity: 0.9;">Online • Typically replies instantly</div>
-      </div>
-    \`;
-    
-    // Chat messages area
-    const chatMessages = document.createElement('div');
-    chatMessages.style.cssText = \`
-      flex: 1;
-      padding: 16px;
-      overflow-y: auto;
-      background: #f9fafb;
-    \`;
-    
-    // Welcome message
-    const welcomeMsg = document.createElement('div');
-    welcomeMsg.style.cssText = \`
-      background: white;
-      padding: 12px 16px;
-      border-radius: 18px 18px 18px 4px;
-      margin-bottom: 12px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-      font-size: 14px;
-      line-height: 1.4;
-    \`;
-    welcomeMsg.textContent = '${formData.welcomeMessage}';
-    chatMessages.appendChild(welcomeMsg);
-    
-    // Chat input area
-    const chatInput = document.createElement('div');
-    chatInput.style.cssText = \`
-      padding: 16px;
-      border-top: 1px solid #e5e7eb;
-      background: white;
-    \`;
-    
-    const inputContainer = document.createElement('div');
-    inputContainer.style.cssText = \`
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    \`;
-    
-    const messageInput = document.createElement('input');
-    messageInput.type = 'text';
-    messageInput.placeholder = '${formData.placeholderText}';
-    messageInput.style.cssText = \`
-      flex: 1;
-      padding: 10px 12px;
-      border: 1px solid #d1d5db;
-      border-radius: 20px;
-      outline: none;
-      font-size: 14px;
-    \`;
-    
-    const sendButton = document.createElement('button');
-    sendButton.style.cssText = \`
-      width: 36px;
-      height: 36px;
-      background: ${formData.primaryColor};
-      border: none;
-      border-radius: 50%;
-      color: white;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.2s ease;
-    \`;
-    sendButton.innerHTML = \`
-      <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
-      </svg>
-    \`;
-    
-    // Assemble chat window
-    inputContainer.appendChild(messageInput);
-    inputContainer.appendChild(sendButton);
-    chatInput.appendChild(inputContainer);
-    
-    chatWindow.appendChild(chatHeader);
-    chatWindow.appendChild(chatMessages);
-    chatWindow.appendChild(chatInput);
-    
-    // Assemble container
-    chatbotContainer.appendChild(toggleButton);
-    chatbotContainer.appendChild(chatWindow);
-    
-    // Add event listeners
-    let isOpen = false;
-    toggleButton.addEventListener('click', function() {
-      isOpen = !isOpen;
-      if (isOpen) {
-        chatWindow.style.display = 'flex';
-        toggleButton.style.transform = 'scale(0.9)';
-      } else {
-        chatWindow.style.display = 'none';
-        toggleButton.style.transform = 'scale(1)';
-      }
-    });
-    
-    // Handle message sending (placeholder)
-    function sendMessage() {
-      const message = messageInput.value.trim();
-      if (message) {
-        // Add user message
-        const userMsg = document.createElement('div');
-        userMsg.style.cssText = \`
-          text-align: right;
-          margin-bottom: 12px;
-        \`;
-        userMsg.innerHTML = \`
-          <div style="display: inline-block; background: ${formData.primaryColor}; color: white; padding: 12px 16px; border-radius: 18px 18px 4px 18px; max-width: 80%; font-size: 14px; line-height: 1.4;">
-            \${message}
-          </div>
-        \`;
-        chatMessages.appendChild(userMsg);
-        
-        // Clear input
-        messageInput.value = '';
-        
-        // Scroll to bottom
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-        
-        // Simulate bot response (replace with actual API call)
-        setTimeout(() => {
-          const botMsg = document.createElement('div');
-          botMsg.style.cssText = \`
-            margin-bottom: 12px;
-          \`;
-          botMsg.innerHTML = \`
-            <div style="background: white; padding: 12px 16px; border-radius: 18px 18px 18px 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-size: 14px; line-height: 1.4; max-width: 80%;">
-              Thank you for your message! I'm currently being set up to provide intelligent responses based on the knowledge sources provided. This is a demo response.
-            </div>
-          \`;
-          chatMessages.appendChild(botMsg);
-          chatMessages.scrollTop = chatMessages.scrollHeight;
-        }, 1000);
-      }
-    }
-    
-    sendButton.addEventListener('click', sendMessage);
-    messageInput.addEventListener('keypress', function(e) {
-      if (e.key === 'Enter') {
-        sendMessage();
-      }
-    });
-    
-    // Add to page
-    document.body.appendChild(chatbotContainer);
-    
-    // Add responsive styles
-    const style = document.createElement('style');
-    style.textContent = \`
-      @media (max-width: 768px) {
-        #genbot-widget-container div[style*="width: 350px"] {
-          width: calc(100vw - 40px) !important;
-          right: 20px !important;
-          left: 20px !important;
-        }
-      }
-    \`;
-    document.head.appendChild(style);
-  })();
-</script>`;
-  };
+
+
+
 
   // Background scraping function
   const startBackgroundScraping = async () => {
@@ -427,17 +187,17 @@ export default function CreateChatbotPage() {
       const file_path = validFilePaths.length > 0 ? validFilePaths[0] : "";
 
       console.log('Starting scraping request with payload:', {
-        url: url,
+            url: url,
         company_id: companyId,
         file_path: file_path
       });
 
       const response = await fetch('http://127.0.0.1:8000/scrape', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
           url: url,
           company_id: companyId,
           file_path: file_path
@@ -479,8 +239,8 @@ export default function CreateChatbotPage() {
 
       // Show appropriate success message
       if (result.type === 'file') {
-        toast({
-          title: "Scraping Complete!",
+      toast({
+        title: "Scraping Complete!",
           description: `Successfully processed and indexed the knowledge source. Data has been stored.`
         });
       } else if (result.message) {
@@ -854,16 +614,16 @@ export default function CreateChatbotPage() {
                 Knowledge Source (URL)
               </Label>
               <div className="relative">
-                <Input
+                      <Input
                   value={formData.urls[0] || ''}
                   onChange={(e) => handleUrlChange(0, e.target.value)}
-                  placeholder="https://example.com/documentation"
-                  className="h-12 pl-4 pr-12 bg-background/50 border-border/50 focus:border-primary/50 focus:ring-primary/20 transition-all duration-200 hover:border-primary/30"
-                />
-                <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                  <Globe className="w-4 h-4 text-muted-foreground" />
-                </div>
-              </div>
+                        placeholder="https://example.com/documentation"
+                        className="h-12 pl-4 pr-12 bg-background/50 border-border/50 focus:border-primary/50 focus:ring-primary/20 transition-all duration-200 hover:border-primary/30"
+                      />
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        <Globe className="w-4 h-4 text-muted-foreground" />
+                      </div>
+                    </div>
               <p className="text-xs text-muted-foreground mt-2">Single URL that your chatbot can learn from to provide better answers</p>
             </div>
 
@@ -1249,18 +1009,12 @@ export default function CreateChatbotPage() {
                     </Button>
                     <Button
                       variant="outline"
-                      onClick={() => {
-                        const iframe = generateIframeCode();
-                        navigator.clipboard.writeText(iframe);
-                        toast({
-                          title: "Iframe Code Copied!",
-                          description: "The embed code has been copied to your clipboard."
-                        });
-                      }}
-                      className="border-green-200 text-green-700 hover:bg-green-50 hover:border-green-300 transition-all duration-200"
+                      onClick={handleGenerateIframe}
+                      disabled={isLoading}
+                      className="border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300 transition-all duration-200"
                     >
                       <Globe className="w-4 h-4 mr-2" />
-                      Copy Embed Code
+                      Generate iFrame
                     </Button>
                   </div>
                 </>
@@ -1341,31 +1095,74 @@ export default function CreateChatbotPage() {
                     <span className="font-semibold text-blue-900">Website Integration</span>
                   </div>
                   <p className="text-sm text-blue-800 mb-4">
-                    Copy and paste this code into your website to add the chatbot widget. It will appear as a floating button in the bottom-right corner.
+                    Choose your preferred integration method. Both will add a floating chatbot widget to the bottom-right corner of your website.
                   </p>
                   
-                  {/* Code Preview */}
-                  <div className="relative">
-                    <div className="bg-gray-900 rounded-lg p-4 text-sm font-mono text-green-400 max-h-32 overflow-y-auto">
-                      <div className="text-gray-400">{'<!-- GenBotAI Chatbot Embed Code -->'}</div>
-                      <div className="text-blue-400">{`<div id="genbot-chatbot-${chatbotId}"></div>`}</div>
-                      <div className="text-yellow-400">{'<script>'}</div>
-                      <div className="text-gray-400 ml-2">{'// Chatbot widget script...'}</div>
-                      <div className="text-yellow-400">{'</script>'}</div>
+                  {/* Default iFrame Code (before generation) */}
+                  {!generatedIframe && (
+                    <div className="mb-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-sm font-medium text-blue-900">Embed Code</h4>
+                        <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full">Click Generate</span>
+                      </div>
+                      <div className="bg-gray-900 rounded-lg p-3 text-sm font-mono text-gray-400">
+                        <div>{'<!-- Click "Generate iFrame" to create working embed code -->'}</div>
+                        <div className="text-blue-400">{`<div id="genbot-chatbot-container"></div>`}</div>
+                        <div className="text-yellow-400">{'<script>'}</div>
+                        <div className="ml-2">{'// Chatbot integration script will appear here'}</div>
+                        <div className="ml-2">{'// after clicking "Generate iFrame"'}</div>
+                        <div className="text-yellow-400">{'</script>'}</div>
+                      </div>
+                      <p className="text-xs text-blue-700 mt-2">
+                        Click "Generate iFrame" below to create working embed code with your bot's configuration.
+                      </p>
                     </div>
+                  )}
+
+                  {/* Generated iFrame Code (after generation) */}
+                  {generatedIframe && (
+                    <div className="mb-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-sm font-medium text-blue-900">✅ Working Embed Code</h4>
+                        <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">Ready to Use</span>
+                      </div>
+                      <div className="relative">
+                        <div className="bg-gray-900 rounded-lg p-3 text-sm font-mono text-green-400 max-h-48 overflow-y-auto">
+                          <pre className="whitespace-pre-wrap">{generatedIframe}</pre>
+                        </div>
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            navigator.clipboard.writeText(generatedIframe);
+                            toast({
+                              title: "Working Code Copied!",
+                              description: "The embed code has been copied to your clipboard."
+                            });
+                          }}
+                          className="absolute top-2 right-2 bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1"
+                        >
+                          Copy
+                        </Button>
+                      </div>
+                      <p className="text-xs text-green-700 mt-2">
+                        ✅ This code will create a working chatbot widget when pasted into your HTML.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Generate Button */}
+                  <div className="mb-4">
                     <Button
-                      size="sm"
-                      onClick={() => {
-                        const iframe = generateIframeCode();
-                        navigator.clipboard.writeText(iframe);
-                        toast({
-                          title: "Embed Code Copied!",
-                          description: "The complete embed code has been copied to your clipboard."
-                        });
-                      }}
-                      className="absolute top-2 right-2 bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1"
+                      onClick={handleGenerateIframe}
+                      disabled={isLoading}
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white"
                     >
-                      Copy Code
+                      {isLoading ? (
+                        <div className="w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      ) : (
+                        <Globe className="w-4 h-4 mr-2" />
+                      )}
+                      {generatedIframe ? 'Regenerate iFrame' : 'Generate iFrame'}
                     </Button>
                   </div>
                   
@@ -1386,13 +1183,16 @@ export default function CreateChatbotPage() {
                     </div>
                   </div>
                   
+
+                  
                   {/* Instructions */}
                   <div className="mt-4 text-xs text-blue-700">
-                    <div className="font-medium mb-1">Integration Steps:</div>
+                    <div className="font-medium mb-1">How to Use:</div>
                     <ol className="list-decimal list-inside space-y-1 ml-2">
-                      <li>Copy the embed code above</li>
-                      <li>Paste it before the closing {'</body>'} tag of your website</li>
-                      <li>The chatbot will automatically appear on your site</li>
+                      <li>Click "Generate iFrame" to create working embed code</li>
+                      <li>Copy the generated code using the "Copy" button</li>
+                      <li>Paste it before the closing {'</body>'} tag in your HTML file</li>
+                      <li>The chatbot widget will appear on your website and work immediately</li>
                     </ol>
                   </div>
                 </div>
@@ -1630,6 +1430,394 @@ export default function CreateChatbotPage() {
     }
   };
 
+  // Function to generate iframe by fetching bot data from API
+  const handleGenerateIframe = async () => {
+    setIsLoading(true);
+    
+    try {
+      const payload = {
+        company_id: companyId,
+        chatbot_id: chatbotId
+      };
+
+      console.log('Fetching bot data for iframe with payload:', payload);
+
+      const response = await fetch('http://127.0.0.1:8000/extract/get-info', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Bot data fetch failed:', errorText);
+        throw new Error(`Failed to fetch bot data: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('Bot data fetched successfully:', result);
+      
+      // Generate iframe code with fetched data
+      const iframeCode = generateIframeWithData(result);
+      setGeneratedIframe(iframeCode);
+      
+      // Copy to clipboard
+      navigator.clipboard.writeText(iframeCode);
+      
+      toast({
+        title: "iFrame Generated & Copied!",
+        description: "The iframe code has been generated and copied to your clipboard."
+      });
+
+    } catch (error) {
+      const errorObj = error as Error;
+      console.error('Error generating iframe:', errorObj);
+      
+      toast({
+        title: "Failed to Generate iFrame",
+        description: "Could not generate iframe code. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Generate iframe code with actual bot data from API
+  const generateIframeWithData = (botData: any) => {
+    return `<!-- GenBotAI Chatbot iFrame -->
+<div id="genbot-chatbot-${botData.basic_info.chatbot_id}"></div>
+<script>
+  (function() {
+    // Bot Configuration from API
+    const config = {
+      companyId: '${botData.basic_info.company_id}',
+      chatbotId: '${botData.basic_info.chatbot_id}',
+      apiUrl: 'http://127.0.0.1:8000',
+      botName: '${botData.basic_info.chatbot_name}',
+      welcomeMessage: '${botData.basic_info.welcome_message}',
+      placeholder: '${botData.basic_info.input_placeholder}',
+      primaryColor: '${botData.appearance.color_code}'
+    };
+
+    // Create chatbot container
+    const chatbotContainer = document.createElement('div');
+    chatbotContainer.id = 'genbot-widget-container';
+    chatbotContainer.style.cssText = \`
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 60px;
+      height: 60px;
+      z-index: 9999;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    \`;
+    
+    // Create toggle button
+    const toggleButton = document.createElement('div');
+    toggleButton.style.cssText = \`
+      width: 60px;
+      height: 60px;
+      background: linear-gradient(135deg, \${config.primaryColor}, \${config.primaryColor}dd);
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    \`;
+    
+    // Add bot icon
+    toggleButton.innerHTML = \`
+      <svg width="28" height="28" fill="white" viewBox="0 0 24 24">
+        <path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 1H5C3.89 1 3 1.89 3 3V19C3 20.1 3.9 21 5 21H11V19H5V3H13V9H21ZM14 13V11H16V13H18V15H16V17H14V15H12V13H14Z"/>
+      </svg>
+    \`;
+    
+    // Create chat window
+    const chatWindow = document.createElement('div');
+    chatWindow.style.cssText = \`
+      position: absolute;
+      bottom: 70px;
+      right: 0;
+      width: 350px;
+      height: 500px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+      border: 1px solid #e5e7eb;
+    \`;
+    
+    // Chat header
+    const chatHeader = document.createElement('div');
+    chatHeader.style.cssText = \`
+      background: linear-gradient(135deg, \${config.primaryColor}, \${config.primaryColor}dd);
+      color: white;
+      padding: 16px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    \`;
+    chatHeader.innerHTML = \`
+      <div style="width: 32px; height: 32px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+        <svg width="18" height="18" fill="white" viewBox="0 0 24 24">
+          <path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 1H5C3.89 1 3 1.89 3 3V19C3 20.1 3.9 21 5 21H11V19H5V3H13V9H21ZM14 13V11H16V13H18V15H16V17H14V15H12V13H14Z"/>
+        </svg>
+      </div>
+      <div>
+        <div style="font-size: 16px;">\${config.botName}</div>
+        <div style="font-size: 12px; opacity: 0.9;">Online • Typically replies instantly</div>
+      </div>
+    \`;
+    
+    // Chat messages area
+    const chatMessages = document.createElement('div');
+    chatMessages.style.cssText = \`
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+      background: #f9fafb;
+    \`;
+    
+    // Welcome message
+    const welcomeMsg = document.createElement('div');
+    welcomeMsg.style.cssText = \`
+      background: white;
+      padding: 12px 16px;
+      border-radius: 18px 18px 18px 4px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      font-size: 14px;
+      line-height: 1.4;
+    \`;
+    welcomeMsg.textContent = config.welcomeMessage;
+    chatMessages.appendChild(welcomeMsg);
+    
+    // Chat input area
+    const chatInput = document.createElement('div');
+    chatInput.style.cssText = \`
+      padding: 16px;
+      border-top: 1px solid #e5e7eb;
+      background: white;
+    \`;
+    
+    const inputContainer = document.createElement('div');
+    inputContainer.style.cssText = \`
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    \`;
+    
+    const messageInput = document.createElement('input');
+    messageInput.type = 'text';
+    messageInput.placeholder = config.placeholder;
+    messageInput.style.cssText = \`
+      flex: 1;
+      padding: 10px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 20px;
+      outline: none;
+      font-size: 14px;
+    \`;
+    
+    const sendButton = document.createElement('button');
+    sendButton.style.cssText = \`
+      width: 36px;
+      height: 36px;
+      background: \${config.primaryColor};
+      border: none;
+      border-radius: 50%;
+      color: white;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    \`;
+    sendButton.innerHTML = \`
+      <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+      </svg>
+    \`;
+    
+    // Generate unique thread ID for this session
+    function generateUUID() {
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0;
+        const v = c == 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
+    }
+    
+    const threadId = generateUUID();
+    
+    // Handle message sending with real API integration
+    async function sendMessage() {
+      const message = messageInput.value.trim();
+      if (!message) return;
+      
+      // Add user message
+      const userMsg = document.createElement('div');
+      userMsg.style.cssText = \`
+        text-align: right;
+        margin-bottom: 12px;
+      \`;
+      userMsg.innerHTML = \`
+        <div style="display: inline-block; background: \${config.primaryColor}; color: white; padding: 12px 16px; border-radius: 18px 18px 4px 18px; max-width: 80%; font-size: 14px; line-height: 1.4;">
+          \${message}
+        </div>
+      \`;
+      chatMessages.appendChild(userMsg);
+      
+      // Clear input and scroll
+      messageInput.value = '';
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+      
+      try {
+        // Call your chat API
+        const response = await fetch(\`\${config.apiUrl}/text_agent/Agents\`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            prompt: message,
+            thread_id: threadId,
+            company_id: config.companyId,
+            chatbot_id: config.chatbotId,
+            uuid: ""
+          })
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          const parsedContent = JSON.parse(result.content);
+          const botResponseText = parsedContent.Response || "I apologize, but I couldn't generate a proper response.";
+          
+          // Add bot response
+          const botMsg = document.createElement('div');
+          botMsg.style.cssText = \`margin-bottom: 12px;\`;
+          botMsg.innerHTML = \`
+            <div style="background: white; padding: 12px 16px; border-radius: 18px 18px 18px 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-size: 14px; line-height: 1.4; max-width: 80%;">
+              \${botResponseText}
+            </div>
+          \`;
+          chatMessages.appendChild(botMsg);
+          
+          // Add follow-up questions if available
+          const followUpQuestions = [
+            parsedContent["Follow-up Question1"],
+            parsedContent["Follow-up Question2"],
+            parsedContent["Follow-up Question3"]
+          ].filter(q => q && q.trim());
+          
+          if (followUpQuestions.length > 0) {
+            const followUpContainer = document.createElement('div');
+            followUpContainer.style.cssText = \`margin-bottom: 12px; margin-left: 0;\`;
+            
+            const followUpLabel = document.createElement('p');
+            followUpLabel.style.cssText = \`font-size: 12px; color: #6b7280; font-weight: 500; margin-bottom: 8px;\`;
+            followUpLabel.textContent = 'You might also ask:';
+            followUpContainer.appendChild(followUpLabel);
+            
+            followUpQuestions.forEach(question => {
+              const questionBtn = document.createElement('button');
+              questionBtn.style.cssText = \`
+                display: block; width: 100%; text-align: left; padding: 8px 12px; 
+                background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; 
+                font-size: 12px; color: #374151; margin-bottom: 6px; cursor: pointer;
+                transition: all 0.2s ease;
+              \`;
+              questionBtn.textContent = question;
+              questionBtn.onmouseover = () => questionBtn.style.background = '#f3f4f6';
+              questionBtn.onmouseout = () => questionBtn.style.background = '#f9fafb';
+              questionBtn.onclick = () => {
+                messageInput.value = question;
+                sendMessage();
+              };
+              followUpContainer.appendChild(questionBtn);
+            });
+            
+            chatMessages.appendChild(followUpContainer);
+          }
+          
+        } else {
+          throw new Error('API request failed');
+        }
+      } catch (error) {
+        // Add error message
+        const errorMsg = document.createElement('div');
+        errorMsg.style.cssText = \`margin-bottom: 12px;\`;
+        errorMsg.innerHTML = \`
+          <div style="background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; padding: 12px 16px; border-radius: 18px 18px 18px 4px; font-size: 14px; line-height: 1.4; max-width: 80%;">
+            Sorry, I'm having trouble processing your request. Please try again.
+          </div>
+        \`;
+        chatMessages.appendChild(errorMsg);
+      }
+      
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+    
+    // Assemble chat window
+    inputContainer.appendChild(messageInput);
+    inputContainer.appendChild(sendButton);
+    chatInput.appendChild(inputContainer);
+    
+    chatWindow.appendChild(chatHeader);
+    chatWindow.appendChild(chatMessages);
+    chatWindow.appendChild(chatInput);
+    
+    // Assemble container
+    chatbotContainer.appendChild(toggleButton);
+    chatbotContainer.appendChild(chatWindow);
+    
+    // Add event listeners
+    let isOpen = false;
+    toggleButton.addEventListener('click', function() {
+      isOpen = !isOpen;
+      if (isOpen) {
+        chatWindow.style.display = 'flex';
+        toggleButton.style.transform = 'scale(0.9)';
+      } else {
+        chatWindow.style.display = 'none';
+        toggleButton.style.transform = 'scale(1)';
+      }
+    });
+    
+    sendButton.addEventListener('click', sendMessage);
+    messageInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        sendMessage();
+      }
+    });
+    
+    // Add to page
+    document.body.appendChild(chatbotContainer);
+    
+    // Add responsive styles
+    const style = document.createElement('style');
+    style.textContent = \`
+      @media (max-width: 768px) {
+        #genbot-widget-container div[style*="width: 350px"] {
+          width: calc(100vw - 40px) !important;
+          right: 20px !important;
+          left: 20px !important;
+        }
+      }
+    \`;
+    document.head.appendChild(style);
+  })();
+</script>`;
+  };
+
   // Voice recording functions
   const startRecording = async () => {
     try {
@@ -1710,12 +1898,32 @@ export default function CreateChatbotPage() {
       };
       setChatMessages(prev => [...prev, userMessage]);
 
-      // Add bot response
+      // Extract follow-up questions from voice response
+      let followUpQuestions: string[] = [];
+      try {
+        // Try to parse response_text as JSON first
+        const parsedResponse = JSON.parse(result.response_text);
+        followUpQuestions = [
+          parsedResponse["Follow-up Question1"],
+          parsedResponse["Follow-up Question2"],
+          parsedResponse["Follow-up Question3"]
+        ].filter(q => q && typeof q === 'string' && q.trim().length > 0);
+      } catch (e) {
+        // If response_text is not JSON, check if result has follow-up questions directly
+        followUpQuestions = [
+          result["Follow-up Question1"],
+          result["Follow-up Question2"],
+          result["Follow-up Question3"]
+        ].filter(q => q && typeof q === 'string' && q.trim().length > 0);
+      }
+
+      // Add bot response with follow-up questions
       const botResponse = {
         id: generateUUID(),
         text: result.response_text,
         isUser: false,
-        timestamp: new Date()
+        timestamp: new Date(),
+        followUpQuestions: followUpQuestions.length > 0 ? followUpQuestions : undefined
       };
       setChatMessages(prev => [...prev, botResponse]);
 
@@ -2136,20 +2344,20 @@ export default function CreateChatbotPage() {
                         onClick={handleNext}
                         className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
                       >
-                        <div className="flex items-center space-x-2">
-                          <span>Next</span>
-                          <ArrowLeft className="w-4 h-4 rotate-180" />
-                        </div>
+                          <div className="flex items-center space-x-2">
+                            <span>Next</span>
+                            <ArrowLeft className="w-4 h-4 rotate-180" />
+                          </div>
                       </Button>
                     ) : currentStep === 4 ? (
                       <Button
                         onClick={handleNext}
                         className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
                       >
-                        <div className="flex items-center space-x-2">
-                          <Bot className="w-4 h-4" />
-                          <span>Create Chatbot</span>
-                        </div>
+                          <div className="flex items-center space-x-2">
+                            <Bot className="w-4 h-4" />
+                            <span>Create Chatbot</span>
+                          </div>
                       </Button>
                     ) : null}
                   </div>
@@ -2159,27 +2367,27 @@ export default function CreateChatbotPage() {
 
             {/* Preview Section - Hide on step 5 */}
             {currentStep !== 5 && (
-              <div className="animate-slideInRight">
-                <Card className="h-[700px] bg-card/80 backdrop-blur-lg border-border/50 shadow-2xl hover:shadow-3xl transition-all duration-300 sticky top-8">
-                  <CardHeader className="bg-gradient-to-r from-emerald-50 to-teal-50 border-b border-border/30">
-                    <CardTitle className="flex items-center gap-3 text-xl">
-                      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
-                        <Eye className="w-4 h-4 text-white" />
-                      </div>
-                      Live Preview
-                      <div className="ml-auto flex items-center gap-2">
-                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                        <span className="text-xs text-muted-foreground">Live</span>
-                      </div>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-0 h-[calc(100%-80px)]">
-                    <div className="h-full border rounded-lg overflow-hidden bg-gradient-to-b from-gray-50 to-white animate-fadeIn">
-                      {renderPreview()}
+            <div className="animate-slideInRight">
+              <Card className="h-[700px] bg-card/80 backdrop-blur-lg border-border/50 shadow-2xl hover:shadow-3xl transition-all duration-300 sticky top-8">
+                <CardHeader className="bg-gradient-to-r from-emerald-50 to-teal-50 border-b border-border/30">
+                  <CardTitle className="flex items-center gap-3 text-xl">
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
+                      <Eye className="w-4 h-4 text-white" />
                     </div>
-                  </CardContent>
-                </Card>
-              </div>
+                    Live Preview
+                    <div className="ml-auto flex items-center gap-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                      <span className="text-xs text-muted-foreground">Live</span>
+                    </div>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-0 h-[calc(100%-80px)]">
+                  <div className="h-full border rounded-lg overflow-hidden bg-gradient-to-b from-gray-50 to-white animate-fadeIn">
+                    {renderPreview()}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
             )}
           </div>
         </div>

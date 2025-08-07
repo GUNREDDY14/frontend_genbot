@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Bot, Settings, Palette, Eye, Plus, Trash2, Sparkles, Zap, Globe, MessageCircle } from "lucide-react";
+import { ArrowLeft, Bot, Settings, Palette, Eye, Plus, Trash2, Sparkles, Zap, Globe, MessageCircle, Upload, FileText, X } from "lucide-react";
 
 interface ChatbotFormData {
   name: string;
@@ -21,6 +21,7 @@ interface ChatbotFormData {
   icon: string;
   responseLength: string;
   urls: string[];
+  filePaths: string[];
   additionalInfo: string;
 }
 
@@ -40,6 +41,7 @@ export default function CreateChatbotPage() {
     icon: 'BotIcon1',
     responseLength: 'medium',
     urls: [''],
+    filePaths: [],
     additionalInfo: ''
   });
 
@@ -76,6 +78,168 @@ export default function CreateChatbotPage() {
     }
   };
 
+  // File upload states and handlers
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [isScrapingLoading, setIsScrapingLoading] = useState(false);
+
+  const handleFileUpload = (files: FileList) => {
+    const newFiles = Array.from(files);
+    const validFiles = newFiles.filter(file => {
+      // Accept common document types
+      const validTypes = [
+        'text/plain',
+        'text/csv',
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/json',
+        'text/markdown'
+      ];
+      return validTypes.includes(file.type) || file.name.endsWith('.md') || file.name.endsWith('.txt');
+    });
+
+    if (validFiles.length !== newFiles.length) {
+      toast({
+        title: "Some files were skipped",
+        description: "Only text, PDF, Word, CSV, JSON, and Markdown files are supported.",
+        variant: "destructive"
+      });
+    }
+
+    setUploadedFiles(prev => [...prev, ...validFiles]);
+    
+    // Update form data with file paths (in a real app, you'd upload these to a server first)
+    const newFilePaths = validFiles.map(file => file.name); // In production, this would be actual server paths
+    setFormData(prev => ({
+      ...prev,
+      filePaths: [...prev.filePaths, ...newFilePaths]
+    }));
+  };
+
+  const removeFile = (index: number) => {
+    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+    setFormData(prev => ({
+      ...prev,
+      filePaths: prev.filePaths.filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    
+    if (e.dataTransfer.files) {
+      handleFileUpload(e.dataTransfer.files);
+    }
+  };
+
+  // Scraping API call function
+  const handleScraping = async () => {
+    const validUrls = formData.urls.filter(url => url.trim() !== '');
+    const validFilePaths = formData.filePaths;
+
+    if (validUrls.length === 0 && validFilePaths.length === 0) {
+      toast({
+        title: "No Sources Found",
+        description: "Please add at least one URL or upload a file before proceeding.",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    setIsScrapingLoading(true);
+    
+    try {
+      // Prepare requests for each URL
+      const urlRequests = validUrls.map(url => 
+        fetch('http://127.0.0.1:8000/Scrape/sentiment_analysis_scrape', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            url: url,
+            company_id: user?.companyId || 'demo-company',
+            file_path: '' // Empty for URL requests
+          })
+        })
+      );
+
+      // Prepare requests for each file
+      const fileRequests = validFilePaths.map(filePath => 
+        fetch('http://127.0.0.1:8000/Scrape/sentiment_analysis_scrape', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            url: '', // Empty for file requests
+            company_id: user?.companyId || 'demo-company',
+            file_path: filePath
+          })
+        })
+      );
+
+      // Execute all requests
+      const allRequests = [...urlRequests, ...fileRequests];
+      const responses = await Promise.all(allRequests);
+
+      // Check if all requests were successful
+      const failedRequests = responses.filter(response => !response.ok);
+      
+      if (failedRequests.length > 0) {
+        throw new Error(`${failedRequests.length} out of ${responses.length} scraping requests failed`);
+      }
+
+      // Parse all responses
+      const results = await Promise.all(responses.map(response => response.json()));
+      
+      console.log('Scraping results:', results);
+
+      toast({
+        title: "Scraping Complete!",
+        description: `Successfully processed ${validUrls.length} URLs and ${validFilePaths.length} files.`
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Scraping error:', error);
+      toast({
+        title: "Scraping Failed",
+        description: "Failed to process knowledge sources. Please try again.",
+        variant: "destructive"
+      });
+      return false;
+    } finally {
+      setIsScrapingLoading(false);
+    }
+  };
+
+  // Handle Next button click
+  const handleNext = async () => {
+    // If we're on Step 2 (Behavior), trigger scraping before proceeding
+    if (currentStep === 2) {
+      const scrapingSuccess = await handleScraping();
+      if (!scrapingSuccess) {
+        return; // Don't proceed if scraping failed
+      }
+    }
+    
+    // Proceed to next step
+    setCurrentStep(Math.min(steps.length, currentStep + 1));
+  };
+
   const handleSubmit = async () => {
     if (!formData.name.trim()) {
       toast({
@@ -89,12 +253,33 @@ export default function CreateChatbotPage() {
     setIsLoading(true);
     
     try {
+      // Prepare the payload for scraping API
+      const scrapingPayload = {
+        chatbot_name: formData.name,
+        welcome_message: formData.welcomeMessage,
+        placeholder_text: formData.placeholderText,
+        tone: formData.tone,
+        primary_color: formData.primaryColor,
+        response_length: formData.responseLength,
+        urls: formData.urls.filter(url => url.trim() !== ''),
+        file_paths: formData.filePaths, // File paths for scraping
+        additional_info: formData.additionalInfo,
+        company_id: user?.companyId || 'demo-company'
+      };
+
+      console.log('Scraping payload:', scrapingPayload);
+      
+      // In a real implementation, you would:
+      // 1. Upload files to your server/cloud storage
+      // 2. Get the actual file paths
+      // 3. Send the payload to your scraping API
+      
       // Simulate API call for now
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       toast({
         title: "Success!",
-        description: "Your chatbot has been created successfully."
+        description: `Your chatbot "${formData.name}" has been created successfully with ${formData.filePaths.length} uploaded files.`
       });
       
       // Redirect to chatbots page
@@ -266,6 +451,126 @@ export default function CreateChatbotPage() {
               </div>
               <p className="text-xs text-muted-foreground mt-2">URLs that your chatbot can learn from to provide better answers</p>
             </div>
+
+            {/* File Upload Section */}
+            <div className="group">
+              <Label className="flex items-center gap-2 text-sm font-semibold text-foreground mb-3">
+                <Upload className="w-4 h-4 text-primary" />
+                Upload Documents
+              </Label>
+              
+              {/* Drag and Drop Zone */}
+              <div
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                className={`relative border-2 border-dashed rounded-xl p-8 text-center transition-all duration-300 cursor-pointer hover:border-primary/50 hover:bg-primary/5 ${
+                  isDragOver 
+                    ? 'border-primary bg-primary/10 scale-105' 
+                    : 'border-border/50 bg-background/50'
+                }`}
+              >
+                <input
+                  type="file"
+                  multiple
+                  accept=".txt,.pdf,.doc,.docx,.csv,.json,.md"
+                  onChange={(e) => e.target.files && handleFileUpload(e.target.files)}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                />
+                
+                <div className="flex flex-col items-center gap-4">
+                  <div className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-300 ${
+                    isDragOver 
+                      ? 'bg-primary/20 scale-110' 
+                      : 'bg-primary/10'
+                  }`}>
+                    <Upload className={`w-8 h-8 transition-all duration-300 ${
+                      isDragOver ? 'text-primary scale-110' : 'text-primary'
+                    }`} />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <p className="text-lg font-semibold text-foreground">
+                      {isDragOver ? 'Drop files here' : 'Drop files or click to upload'}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Supports PDF, Word, Text, CSV, JSON, and Markdown files
+                    </p>
+                  </div>
+                  
+                  {!isDragOver && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="pointer-events-none"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Choose Files
+                    </Button>
+                  )}
+                </div>
+              </div>
+              
+              {/* Uploaded Files List */}
+              {uploadedFiles.length > 0 && (
+                <div className="mt-4 space-y-2">
+                  <p className="text-sm font-medium text-foreground">Uploaded Files ({uploadedFiles.length})</p>
+                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                    {uploadedFiles.map((file, index) => (
+                      <div 
+                        key={index} 
+                        className="flex items-center justify-between p-3 bg-background/80 border border-border/50 rounded-lg hover:bg-background transition-colors duration-200 animate-slideInUp"
+                        style={{ animationDelay: `${index * 50}ms` }}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
+                            <FileText className="w-4 h-4 text-primary" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-foreground truncate max-w-[200px]">
+                              {file.name}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {(file.size / 1024).toFixed(1)} KB
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeFile(index)}
+                          className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-600 transition-all duration-200"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              <p className="text-xs text-muted-foreground mt-2">
+                Upload documents that contain information your chatbot should know about
+              </p>
+            </div>
+
+            {/* Scraping Info */}
+            {(formData.urls.filter(url => url.trim()).length > 0 || formData.filePaths.length > 0) && (
+              <div className="p-4 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 animate-slideInUp">
+                <div className="flex items-center gap-3 mb-2">
+                  <Sparkles className="w-5 h-5 text-blue-600" />
+                  <span className="font-semibold text-blue-900">Ready for Processing</span>
+                </div>
+                <p className="text-sm text-blue-800">
+                  When you click "Next", we'll process {formData.urls.filter(url => url.trim()).length} URL{formData.urls.filter(url => url.trim()).length !== 1 ? 's' : ''} 
+                  {formData.urls.filter(url => url.trim()).length > 0 && formData.filePaths.length > 0 ? ' and ' : ''}
+                  {formData.filePaths.length > 0 ? `${formData.filePaths.length} file${formData.filePaths.length !== 1 ? 's' : ''}` : ''} 
+                  {' '}to extract knowledge for your chatbot.
+                </p>
+              </div>
+            )}
             
             <div className="group">
               <Label htmlFor="additionalInfo" className="flex items-center gap-2 text-sm font-semibold text-foreground mb-3">
@@ -406,6 +711,28 @@ export default function CreateChatbotPage() {
                     <span>Knowledge Sources:</span>
                     <span className="font-medium">{formData.urls.filter(url => url.trim()).length} URLs</span>
                   </div>
+                  <div className="flex justify-between">
+                    <span>Uploaded Files:</span>
+                    <span className="font-medium">{formData.filePaths.length} Documents</span>
+                  </div>
+                  {formData.filePaths.length > 0 && (
+                    <div className="mt-3 p-2 bg-white/60 rounded border">
+                      <p className="text-xs text-purple-600 font-medium mb-1">Files:</p>
+                      <div className="space-y-1">
+                        {formData.filePaths.slice(0, 3).map((filePath, index) => (
+                          <div key={index} className="flex items-center gap-2 text-xs text-purple-700">
+                            <FileText className="w-3 h-3" />
+                            <span className="truncate">{filePath}</span>
+                          </div>
+                        ))}
+                        {formData.filePaths.length > 3 && (
+                          <div className="text-xs text-purple-600 font-medium">
+                            +{formData.filePaths.length - 3} more files
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -723,11 +1050,21 @@ export default function CreateChatbotPage() {
                     
                     {currentStep < steps.length ? (
                       <Button
-                        onClick={() => setCurrentStep(Math.min(steps.length, currentStep + 1))}
-                        className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
+                        onClick={handleNext}
+                        disabled={isScrapingLoading}
+                        className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 disabled:opacity-50"
                       >
-                        Next
-                        <ArrowLeft className="w-4 h-4 ml-2 rotate-180" />
+                        {isScrapingLoading && currentStep === 2 ? (
+                          <div className="flex items-center space-x-2">
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            <span>Processing...</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center space-x-2">
+                            <span>Next</span>
+                            <ArrowLeft className="w-4 h-4 rotate-180" />
+                          </div>
+                        )}
                       </Button>
                     ) : (
                       <Button

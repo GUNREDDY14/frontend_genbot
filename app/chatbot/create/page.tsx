@@ -33,6 +33,8 @@ export default function CreateChatbotPage() {
   const [currentStep, setCurrentStep] = useState(1);
   const [scrapingStatus, setScrapingStatus] = useState<'idle' | 'processing' | 'completed' | 'failed'>('idle');
   const [scrapingStarted, setScrapingStarted] = useState(false);
+  const [companyId, setCompanyId] = useState<string>('');
+  const [chatbotId, setChatbotId] = useState<string>('');
   
   const [formData, setFormData] = useState<ChatbotFormData>({
     name: '',
@@ -68,9 +70,6 @@ export default function CreateChatbotPage() {
   // File upload states and handlers
   const [isDragOver, setIsDragOver] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
-  const [isBasicInfoLoading, setIsBasicInfoLoading] = useState(false);
-  const [isAppearanceLoading, setIsAppearanceLoading] = useState(false);
-  const [chatbotId, setChatbotId] = useState<string>('');
 
   const handleFileUpload = (files: FileList) => {
     const newFiles = Array.from(files);
@@ -133,7 +132,7 @@ export default function CreateChatbotPage() {
     }
   };
 
-  // Generate random UUID for company_id
+  // Generate random UUID for company_id and chatbot_id
   const generateUUID = () => {
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
       const r = Math.random() * 16 | 0;
@@ -142,157 +141,255 @@ export default function CreateChatbotPage() {
     });
   };
 
-  // Basic Info Database Insertion Function (Currently disabled for testing)
-  const insertBasicInfoToDatabase = async () => {
-    if (!formData.name.trim()) {
-      toast({
-        title: "Validation Error",
-        description: "Please enter a chatbot name.",
-        variant: "destructive"
-      });
-      return false;
-    }
+  // Initialize UUIDs on component mount
+  React.useEffect(() => {
+    if (!companyId) setCompanyId(generateUUID());
+    if (!chatbotId) setChatbotId(generateUUID());
+  }, []);
 
-    setIsBasicInfoLoading(true);
+  // Generate iframe embed code
+  const generateIframeCode = () => {
+    return `<!-- GenBotAI Chatbot Embed Code -->
+<div id="genbot-chatbot-${chatbotId}"></div>
+<script>
+  (function() {
+    // Create chatbot container
+    const chatbotContainer = document.createElement('div');
+    chatbotContainer.id = 'genbot-widget-container';
+    chatbotContainer.style.cssText = \`
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 60px;
+      height: 60px;
+      z-index: 9999;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    \`;
     
-    try {
-      // Generate a unique chatbot ID if not already generated
-      let currentChatbotId = chatbotId;
-      if (!currentChatbotId) {
-        currentChatbotId = generateUUID();
-        setChatbotId(currentChatbotId);
-      }
-
-      const basicInfoPayload = {
-        company_id: user?.companyId || 'demo-company',
-        chatbot_id: currentChatbotId,
-        chatbot_name: formData.name.trim(),
-        welcome_message: formData.welcomeMessage.trim(),
-        input_placeholder: formData.placeholderText.trim()
-      };
-
-      console.log('Inserting basic info:', basicInfoPayload);
-
-      const response = await fetch('http://127.0.0.1:8000/insert/basic-info', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(basicInfoPayload)
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-      console.log('Basic info insertion result:', result);
-
-      toast({
-        title: "Basic Info Saved!",
-        description: `Chatbot "${formData.name}" basic information has been saved to database.`
-      });
-
-      return true;
-    } catch (error) {
-      console.error('Basic info insertion error:', error);
-      
-      // Check if it's a network error (backend not running)
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      const isNetworkError = errorMessage.includes('fetch') || errorMessage.includes('Failed to fetch');
-      
-      if (isNetworkError) {
-        toast({
-          title: "Backend Not Available",
-          description: "Could not connect to backend server. Continuing without saving for now.",
-          variant: "destructive"
-        });
-        // For testing purposes, we'll continue even if backend is not available
-        console.log('Backend not available, continuing without saving');
-        return true;
-      } else {
-        toast({
-          title: "Save Failed",
-          description: "Failed to save basic information. Please try again.",
-          variant: "destructive"
-        });
-        return false;
-      }
-    } finally {
-      setIsBasicInfoLoading(false);
-    }
-  };
-
-  // Appearance Database Insertion Function
-  const insertAppearanceToDatabase = async () => {
-    if (!chatbotId) {
-      toast({
-        title: "Error",
-        description: "Chatbot ID not found. Please go back to Step 1.",
-        variant: "destructive"
-      });
-      return false;
-    }
-
-    setIsAppearanceLoading(true);
+    // Create toggle button
+    const toggleButton = document.createElement('div');
+    toggleButton.style.cssText = \`
+      width: 60px;
+      height: 60px;
+      background: linear-gradient(135deg, ${formData.primaryColor}, ${formData.primaryColor}dd);
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    \`;
     
-    try {
-      const appearancePayload = {
-        company_id: user?.companyId || 'demo-company',
-        chatbot_id: chatbotId,
-        color_code: formData.primaryColor
-      };
-
-      console.log('Inserting appearance info:', appearancePayload);
-
-      const response = await fetch('http://127.0.0.1:8000/insert/appearance', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(appearancePayload)
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-      console.log('Appearance insertion result:', result);
-
-      toast({
-        title: "Appearance Saved!",
-        description: `Chatbot appearance with color ${formData.primaryColor} has been saved to database.`
-      });
-
-      return true;
-    } catch (error) {
-      console.error('Appearance insertion error:', error);
-      
-      // Check if it's a network error (backend not running)
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      const isNetworkError = errorMessage.includes('fetch') || errorMessage.includes('Failed to fetch');
-      
-      if (isNetworkError) {
-        toast({
-          title: "Backend Not Available",
-          description: "Could not connect to backend server. Continuing without saving for now.",
-          variant: "destructive"
-        });
-        // For testing purposes, we'll continue even if backend is not available
-        console.log('Backend not available, continuing without saving appearance');
-        return true;
+    // Add bot icon
+    toggleButton.innerHTML = \`
+      <svg width="28" height="28" fill="white" viewBox="0 0 24 24">
+        <path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 1H5C3.89 1 3 1.89 3 3V19C3 20.1 3.9 21 5 21H11V19H5V3H13V9H21ZM14 13V11H16V13H18V15H16V17H14V15H12V13H14Z"/>
+      </svg>
+    \`;
+    
+    // Create chat window
+    const chatWindow = document.createElement('div');
+    chatWindow.style.cssText = \`
+      position: absolute;
+      bottom: 70px;
+      right: 0;
+      width: 350px;
+      height: 500px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+      border: 1px solid #e5e7eb;
+    \`;
+    
+    // Chat header
+    const chatHeader = document.createElement('div');
+    chatHeader.style.cssText = \`
+      background: linear-gradient(135deg, ${formData.primaryColor}, ${formData.primaryColor}dd);
+      color: white;
+      padding: 16px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    \`;
+    chatHeader.innerHTML = \`
+      <div style="width: 32px; height: 32px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+        <svg width="18" height="18" fill="white" viewBox="0 0 24 24">
+          <path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 1H5C3.89 1 3 1.89 3 3V19C3 20.1 3.9 21 5 21H11V19H5V3H13V9H21ZM14 13V11H16V13H18V15H16V17H14V15H12V13H14Z"/>
+        </svg>
+      </div>
+      <div>
+        <div style="font-size: 16px;">${formData.name || 'AI Assistant'}</div>
+        <div style="font-size: 12px; opacity: 0.9;">Online • Typically replies instantly</div>
+      </div>
+    \`;
+    
+    // Chat messages area
+    const chatMessages = document.createElement('div');
+    chatMessages.style.cssText = \`
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+      background: #f9fafb;
+    \`;
+    
+    // Welcome message
+    const welcomeMsg = document.createElement('div');
+    welcomeMsg.style.cssText = \`
+      background: white;
+      padding: 12px 16px;
+      border-radius: 18px 18px 18px 4px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      font-size: 14px;
+      line-height: 1.4;
+    \`;
+    welcomeMsg.textContent = '${formData.welcomeMessage}';
+    chatMessages.appendChild(welcomeMsg);
+    
+    // Chat input area
+    const chatInput = document.createElement('div');
+    chatInput.style.cssText = \`
+      padding: 16px;
+      border-top: 1px solid #e5e7eb;
+      background: white;
+    \`;
+    
+    const inputContainer = document.createElement('div');
+    inputContainer.style.cssText = \`
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    \`;
+    
+    const messageInput = document.createElement('input');
+    messageInput.type = 'text';
+    messageInput.placeholder = '${formData.placeholderText}';
+    messageInput.style.cssText = \`
+      flex: 1;
+      padding: 10px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 20px;
+      outline: none;
+      font-size: 14px;
+    \`;
+    
+    const sendButton = document.createElement('button');
+    sendButton.style.cssText = \`
+      width: 36px;
+      height: 36px;
+      background: ${formData.primaryColor};
+      border: none;
+      border-radius: 50%;
+      color: white;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    \`;
+    sendButton.innerHTML = \`
+      <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+      </svg>
+    \`;
+    
+    // Assemble chat window
+    inputContainer.appendChild(messageInput);
+    inputContainer.appendChild(sendButton);
+    chatInput.appendChild(inputContainer);
+    
+    chatWindow.appendChild(chatHeader);
+    chatWindow.appendChild(chatMessages);
+    chatWindow.appendChild(chatInput);
+    
+    // Assemble container
+    chatbotContainer.appendChild(toggleButton);
+    chatbotContainer.appendChild(chatWindow);
+    
+    // Add event listeners
+    let isOpen = false;
+    toggleButton.addEventListener('click', function() {
+      isOpen = !isOpen;
+      if (isOpen) {
+        chatWindow.style.display = 'flex';
+        toggleButton.style.transform = 'scale(0.9)';
       } else {
-        toast({
-          title: "Save Failed",
-          description: "Failed to save appearance information. Please try again.",
-          variant: "destructive"
-        });
-        return false;
+        chatWindow.style.display = 'none';
+        toggleButton.style.transform = 'scale(1)';
       }
-    } finally {
-      setIsAppearanceLoading(false);
+    });
+    
+    // Handle message sending (placeholder)
+    function sendMessage() {
+      const message = messageInput.value.trim();
+      if (message) {
+        // Add user message
+        const userMsg = document.createElement('div');
+        userMsg.style.cssText = \`
+          text-align: right;
+          margin-bottom: 12px;
+        \`;
+        userMsg.innerHTML = \`
+          <div style="display: inline-block; background: ${formData.primaryColor}; color: white; padding: 12px 16px; border-radius: 18px 18px 4px 18px; max-width: 80%; font-size: 14px; line-height: 1.4;">
+            \${message}
+          </div>
+        \`;
+        chatMessages.appendChild(userMsg);
+        
+        // Clear input
+        messageInput.value = '';
+        
+        // Scroll to bottom
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        
+        // Simulate bot response (replace with actual API call)
+        setTimeout(() => {
+          const botMsg = document.createElement('div');
+          botMsg.style.cssText = \`
+            margin-bottom: 12px;
+          \`;
+          botMsg.innerHTML = \`
+            <div style="background: white; padding: 12px 16px; border-radius: 18px 18px 18px 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-size: 14px; line-height: 1.4; max-width: 80%;">
+              Thank you for your message! I'm currently being set up to provide intelligent responses based on the knowledge sources provided. This is a demo response.
+            </div>
+          \`;
+          chatMessages.appendChild(botMsg);
+          chatMessages.scrollTop = chatMessages.scrollHeight;
+        }, 1000);
+      }
     }
+    
+    sendButton.addEventListener('click', sendMessage);
+    messageInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        sendMessage();
+      }
+    });
+    
+    // Add to page
+    document.body.appendChild(chatbotContainer);
+    
+    // Add responsive styles
+    const style = document.createElement('style');
+    style.textContent = \`
+      @media (max-width: 768px) {
+        #genbot-widget-container div[style*="width: 350px"] {
+          width: calc(100vw - 40px) !important;
+          right: 20px !important;
+          left: 20px !important;
+        }
+      }
+    \`;
+    document.head.appendChild(style);
+  })();
+</script>`;
   };
 
   // Background scraping function
@@ -308,10 +405,7 @@ export default function CreateChatbotPage() {
     setScrapingStarted(true);
     
     try {
-      // Generate random UUID for company_id
-      const companyId = generateUUID();
-      
-      // Prepare single request with URL and file_path
+      // Use the existing company_id from state
       const url = userUrl || "https://example.com/";
       const file_path = validFilePaths.length > 0 ? validFilePaths[0] : "";
 
@@ -411,6 +505,113 @@ export default function CreateChatbotPage() {
     }
   };
 
+  // Function to send basic info to backend
+  const sendBasicInfo = async () => {
+    if (!formData.name.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Please enter a chatbot name.",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    try {
+      const payload = {
+        company_id: companyId,
+        chatbot_id: chatbotId,
+        chatbot_name: formData.name,
+        welcome_message: formData.welcomeMessage,
+        input_placeholder: formData.placeholderText
+      };
+
+      console.log('Sending basic info with payload:', payload);
+
+      const response = await fetch('http://127.0.0.1:8000/insert/basic-info', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Basic info request failed:', errorText);
+        throw new Error(`Failed to save basic info: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('Basic info saved successfully:', result);
+      
+      toast({
+        title: "Basic Info Saved!",
+        description: "Your chatbot's basic information has been saved successfully."
+      });
+
+      return true;
+    } catch (error) {
+      const errorObj = error as Error;
+      console.error('Error saving basic info:', errorObj);
+      
+      toast({
+        title: "Save Failed",
+        description: "Failed to save basic information. Please try again.",
+        variant: "destructive"
+      });
+      
+      return false;
+    }
+  };
+
+  // Function to send appearance info to backend
+  const sendAppearanceInfo = async () => {
+    try {
+      const payload = {
+        company_id: companyId,
+        chatbot_id: chatbotId,
+        color_code: formData.primaryColor
+      };
+
+      console.log('Sending appearance info with payload:', payload);
+
+      const response = await fetch('http://127.0.0.1:8000/insert/appearance', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Appearance info request failed:', errorText);
+        throw new Error(`Failed to save appearance info: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('Appearance info saved successfully:', result);
+      
+      toast({
+        title: "Appearance Saved!",
+        description: "Your chatbot's appearance has been saved successfully."
+      });
+
+      return true;
+    } catch (error) {
+      const errorObj = error as Error;
+      console.error('Error saving appearance info:', errorObj);
+      
+      toast({
+        title: "Save Failed",
+        description: "Failed to save appearance information. Please try again.",
+        variant: "destructive"
+      });
+      
+      return false;
+    }
+  };
+
   // Validation function for step 2
   const validateStep2 = () => {
     const userUrl = formData.urls[0]?.trim();
@@ -429,42 +630,16 @@ export default function CreateChatbotPage() {
 
   // Handle Next button click
   const handleNext = async () => {
-    console.log('handleNext called, currentStep:', currentStep);
-    
-    // If we're on Step 1 (Basic Info), save to database before proceeding
+    // If we're on Step 1 (Basic Info), send basic info to backend
     if (currentStep === 1) {
-      console.log('Processing Step 1 - attempting to save basic info');
-      
-      // TEMPORARY: Skip database call for testing navigation
-      // TODO: Remove this once database connection is working
-      if (!formData.name.trim()) {
-        toast({
-          title: "Validation Error",
-          description: "Please enter a chatbot name.",
-          variant: "destructive"
-        });
-        return;
+      const success = await sendBasicInfo();
+      if (!success) {
+        return; // Don't proceed if saving failed
       }
-      
-      // Generate chatbot ID if not already generated
-      if (!chatbotId) {
-        const newChatbotId = generateUUID();
-        setChatbotId(newChatbotId);
-        console.log('Generated new chatbot ID:', newChatbotId);
-      }
-      
-      // Show temporary success message
-      toast({
-        title: "Basic Info Ready!",
-        description: `Chatbot "${formData.name}" is ready. Moving to next step.`
-      });
-      
-      console.log('Step 1 validation passed, proceeding to next step');
     }
     
     // If we're on Step 2 (Behavior), validate and start background scraping
     if (currentStep === 2) {
-      console.log('Processing Step 2 - validating and starting scraping');
       if (!validateStep2()) {
         return; // Don't proceed if validation failed
       }
@@ -474,35 +649,16 @@ export default function CreateChatbotPage() {
       }
     }
     
-    // If we're on Step 3 (Appearance), save appearance to database
+    // If we're on Step 3 (Appearance), send appearance info to backend
     if (currentStep === 3) {
-      console.log('Processing Step 3 - saving appearance info');
-      
-      // TEMPORARY: Skip database call for testing navigation
-      // TODO: Remove this once database connection is working
-      if (!formData.primaryColor) {
-        toast({
-          title: "Validation Error",
-          description: "Please select a primary color.",
-          variant: "destructive"
-        });
-        return;
+      const success = await sendAppearanceInfo();
+      if (!success) {
+        return; // Don't proceed if saving failed
       }
-      
-      // Show temporary success message
-      toast({
-        title: "Appearance Ready!",
-        description: `Appearance with color ${formData.primaryColor} is ready. Moving to next step.`
-      });
-      
-      console.log('Step 3 validation passed, proceeding to next step');
     }
     
-    // Proceed to next step
-    const nextStep = Math.min(steps.length, currentStep + 1);
-    console.log('Moving from step', currentStep, 'to step', nextStep);
-    setCurrentStep(nextStep);
-    console.log('setCurrentStep called with:', nextStep);
+    // Proceed to next step immediately
+    setCurrentStep(Math.min(steps.length, currentStep + 1));
   };
 
 
@@ -575,19 +731,6 @@ export default function CreateChatbotPage() {
               </div>
               <p className="text-xs text-muted-foreground mt-2">Placeholder text shown in the chat input field</p>
             </div>
-
-            {/* Database Save Info */}
-            {formData.name.trim() && (
-              <div className="p-4 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 animate-slideInUp">
-                <div className="flex items-center gap-3 mb-2">
-                  <Sparkles className="w-5 h-5 text-green-600" />
-                  <span className="font-semibold text-green-900">Ready to Save</span>
-                </div>
-                <p className="text-sm text-green-800">
-                  When you click "Next", your chatbot's basic information will be saved to the database with a unique ID.
-                </p>
-              </div>
-            )}
           </div>
         );
       
@@ -861,19 +1004,6 @@ export default function CreateChatbotPage() {
               </div>
               <p className="text-xs text-muted-foreground mt-2">Quick color selection or use the color picker above</p>
             </div>
-
-            {/* Appearance Save Info */}
-            {formData.primaryColor && (
-              <div className="p-4 rounded-lg bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 animate-slideInUp">
-                <div className="flex items-center gap-3 mb-2">
-                  <Palette className="w-5 h-5 text-purple-600" />
-                  <span className="font-semibold text-purple-900">Ready to Save</span>
-                </div>
-                <p className="text-sm text-purple-800">
-                  When you click "Next", your chatbot's appearance settings with color {formData.primaryColor} will be saved to the database.
-                </p>
-              </div>
-            )}
           </div>
         );
       
@@ -1030,13 +1160,30 @@ export default function CreateChatbotPage() {
                   <p className="text-muted-foreground text-lg mb-6">
                     Your chatbot has been successfully created and trained with your content.
                   </p>
-                  <Button
-                    onClick={() => router.push('/dashboard')}
-                    className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
-                  >
-                    <Bot className="w-4 h-4 mr-2" />
-                    Open Your Bot
-                  </Button>
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <Button
+                      onClick={() => router.push('/dashboard')}
+                      className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
+                    >
+                      <Bot className="w-4 h-4 mr-2" />
+                      Open Your Bot
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        const iframe = generateIframeCode();
+                        navigator.clipboard.writeText(iframe);
+                        toast({
+                          title: "Iframe Code Copied!",
+                          description: "The embed code has been copied to your clipboard."
+                        });
+                      }}
+                      className="border-green-200 text-green-700 hover:bg-green-50 hover:border-green-300 transition-all duration-200"
+                    >
+                      <Globe className="w-4 h-4 mr-2" />
+                      Copy Embed Code
+                    </Button>
+                  </div>
                 </>
               ) : scrapingStatus === 'failed' ? (
                 <>
@@ -1105,6 +1252,69 @@ export default function CreateChatbotPage() {
                       <span>Knowledge Source:</span>
                       <span className="font-medium">✅ Processed</span>
                     </div>
+                  </div>
+                </div>
+
+                {/* Embed Code Section */}
+                <div className="p-4 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200">
+                  <div className="flex items-center gap-3 mb-3">
+                    <Globe className="w-5 h-5 text-blue-600" />
+                    <span className="font-semibold text-blue-900">Website Integration</span>
+                  </div>
+                  <p className="text-sm text-blue-800 mb-4">
+                    Copy and paste this code into your website to add the chatbot widget. It will appear as a floating button in the bottom-right corner.
+                  </p>
+                  
+                  {/* Code Preview */}
+                  <div className="relative">
+                    <div className="bg-gray-900 rounded-lg p-4 text-sm font-mono text-green-400 max-h-32 overflow-y-auto">
+                      <div className="text-gray-400">{'<!-- GenBotAI Chatbot Embed Code -->'}</div>
+                      <div className="text-blue-400">{`<div id="genbot-chatbot-${chatbotId}"></div>`}</div>
+                      <div className="text-yellow-400">{'<script>'}</div>
+                      <div className="text-gray-400 ml-2">{'// Chatbot widget script...'}</div>
+                      <div className="text-yellow-400">{'</script>'}</div>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        const iframe = generateIframeCode();
+                        navigator.clipboard.writeText(iframe);
+                        toast({
+                          title: "Embed Code Copied!",
+                          description: "The complete embed code has been copied to your clipboard."
+                        });
+                      }}
+                      className="absolute top-2 right-2 bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1"
+                    >
+                      Copy Code
+                    </Button>
+                  </div>
+                  
+                  {/* Widget Preview */}
+                  <div className="mt-4 p-3 bg-white rounded-lg border border-blue-200">
+                    <div className="text-xs font-medium text-blue-900 mb-2">Widget Preview:</div>
+                    <div className="flex items-center gap-2">
+                      <div 
+                        className="w-8 h-8 rounded-full flex items-center justify-center shadow-sm"
+                        style={{ backgroundColor: formData.primaryColor }}
+                      >
+                        <Bot className="w-4 h-4 text-white" />
+                      </div>
+                      <div className="text-xs text-blue-800">
+                        <div className="font-medium">{formData.name || 'AI Assistant'}</div>
+                        <div className="opacity-75">Floating widget • Bottom-right corner</div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Instructions */}
+                  <div className="mt-4 text-xs text-blue-700">
+                    <div className="font-medium mb-1">Integration Steps:</div>
+                    <ol className="list-decimal list-inside space-y-1 ml-2">
+                      <li>Copy the embed code above</li>
+                      <li>Paste it before the closing {'</body>'} tag of your website</li>
+                      <li>The chatbot will automatically appear on your site</li>
+                    </ol>
                   </div>
                 </div>
               </div>
@@ -1372,20 +1582,12 @@ export default function CreateChatbotPage() {
                     {currentStep < 4 ? (
                       <Button
                         onClick={handleNext}
-                        disabled={isBasicInfoLoading || isAppearanceLoading}
-                        className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 disabled:opacity-50"
+                        className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
                       >
-                        {(isBasicInfoLoading && currentStep === 1) || (isAppearanceLoading && currentStep === 3) ? (
-                          <div className="flex items-center space-x-2">
-                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                            <span>Saving...</span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center space-x-2">
-                            <span>Next</span>
-                            <ArrowLeft className="w-4 h-4 rotate-180" />
-                          </div>
-                        )}
+                        <div className="flex items-center space-x-2">
+                          <span>Next</span>
+                          <ArrowLeft className="w-4 h-4 rotate-180" />
+                        </div>
                       </Button>
                     ) : currentStep === 4 ? (
                       <Button

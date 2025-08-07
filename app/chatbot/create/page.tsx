@@ -35,6 +35,12 @@ export default function CreateChatbotPage() {
   const [scrapingStarted, setScrapingStarted] = useState(false);
   const [companyId, setCompanyId] = useState<string>('');
   const [chatbotId, setChatbotId] = useState<string>('');
+  const [showChatScreen, setShowChatScreen] = useState(false);
+  const [botData, setBotData] = useState<any>(null);
+  const [chatMessages, setChatMessages] = useState<Array<{id: string, text: string, isUser: boolean, timestamp: Date, followUpQuestions?: string[]}>>([]);
+  const [threadId, setThreadId] = useState<string>('');
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
+  const messagesEndRef = React.useRef<HTMLDivElement>(null);
   
   const [formData, setFormData] = useState<ChatbotFormData>({
     name: '',
@@ -145,7 +151,13 @@ export default function CreateChatbotPage() {
   React.useEffect(() => {
     if (!companyId) setCompanyId(generateUUID());
     if (!chatbotId) setChatbotId(generateUUID());
+    if (!threadId) setThreadId(generateUUID());
   }, []);
+
+  // Auto-scroll to bottom when new messages are added
+  React.useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatMessages]);
 
   // Generate iframe embed code
   const generateIframeCode = () => {
@@ -575,7 +587,7 @@ export default function CreateChatbotPage() {
 
       console.log('Sending appearance info with payload:', payload);
 
-      const response = await fetch('http://127.0.0.1:8000/insert/appearance', {
+      const response = await fetch('http://127.0.0.1:5015/appearance/appearance', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -609,6 +621,63 @@ export default function CreateChatbotPage() {
       });
       
       return false;
+    }
+  };
+
+  // Function to handle opening the bot chat screen
+  const handleOpenBot = async () => {
+    setIsLoading(true);
+    
+    try {
+      const payload = {
+        company_id: companyId,
+        chatbot_id: chatbotId
+      };
+
+      console.log('Fetching bot data with payload:', payload);
+
+      const response = await fetch('http://127.0.0.1:8000/extract/get-info', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Bot data fetch failed:', errorText);
+        throw new Error(`Failed to fetch bot data: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('Bot data fetched successfully:', result);
+      
+      setBotData(result);
+      
+      // Initialize chat with welcome message
+      const welcomeMessage = {
+        id: generateUUID(),
+        text: result.basic_info.welcome_message,
+        isUser: false,
+        timestamp: new Date()
+      };
+      setChatMessages([welcomeMessage]);
+      
+      // Switch to chat screen
+      setShowChatScreen(true);
+
+    } catch (error) {
+      const errorObj = error as Error;
+      console.error('Error fetching bot data:', errorObj);
+      
+      toast({
+        title: "Failed to Open Bot",
+        description: "Could not load your chatbot. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -1162,10 +1231,15 @@ export default function CreateChatbotPage() {
                   </p>
                   <div className="flex flex-col sm:flex-row gap-4">
                     <Button
-                      onClick={() => router.push('/dashboard')}
-                      className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
+                      onClick={handleOpenBot}
+                      disabled={isLoading}
+                      className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 disabled:opacity-50"
                     >
-                      <Bot className="w-4 h-4 mr-2" />
+                      {isLoading ? (
+                        <div className="w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      ) : (
+                        <Bot className="w-4 h-4 mr-2" />
+                      )}
                       Open Your Bot
                     </Button>
                     <Button
@@ -1455,6 +1529,245 @@ export default function CreateChatbotPage() {
       </div>
     );
   };
+
+  // Function to send a message in chat
+  const sendChatMessage = async (message: string) => {
+    if (!message.trim() || !botData || isSendingMessage) return;
+
+    setIsSendingMessage(true);
+
+    // Add user message
+    const userMessage = {
+      id: generateUUID(),
+      text: message,
+      isUser: true,
+      timestamp: new Date()
+    };
+
+    setChatMessages(prev => [...prev, userMessage]);
+
+    try {
+      const payload = {
+        prompt: message,
+        thread_id: threadId,
+        company_id: companyId,
+        chatbot_id: chatbotId,
+        uuid: ""
+      };
+
+      console.log('Sending chat message with payload:', payload);
+
+      const response = await fetch('http://127.0.0.1:8000/text_agent/Agents', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Chat API request failed:', errorText);
+        throw new Error(`Chat API failed: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('Chat API response:', result);
+
+      // Parse the content JSON
+      let parsedContent;
+      try {
+        parsedContent = JSON.parse(result.content);
+      } catch (parseError) {
+        console.error('Failed to parse content JSON:', parseError);
+        throw new Error('Invalid response format from chat API');
+      }
+
+      // Extract response and follow-up questions
+      const botResponseText = parsedContent.Response || "I apologize, but I couldn't generate a proper response.";
+      const followUpQuestions = [
+        parsedContent["Follow-up Question1"],
+        parsedContent["Follow-up Question2"],
+        parsedContent["Follow-up Question3"]
+      ].filter(q => q && q.trim()); // Filter out empty questions
+
+      // Add bot response with follow-up questions
+      const botResponse = {
+        id: generateUUID(),
+        text: botResponseText,
+        isUser: false,
+        timestamp: new Date(),
+        followUpQuestions: followUpQuestions.length > 0 ? followUpQuestions : undefined
+      };
+
+      setChatMessages(prev => [...prev, botResponse]);
+
+    } catch (error) {
+      const errorObj = error as Error;
+      console.error('Error sending chat message:', errorObj);
+      
+      // Add error message
+      const errorResponse = {
+        id: generateUUID(),
+        text: "I apologize, but I'm having trouble processing your request right now. Please try again.",
+        isUser: false,
+        timestamp: new Date()
+      };
+      setChatMessages(prev => [...prev, errorResponse]);
+      
+      toast({
+        title: "Message Failed",
+        description: "Could not send your message. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSendingMessage(false);
+    }
+  };
+
+  // If showing chat screen, render the chat interface
+  if (showChatScreen && botData) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+        {/* Chat Header */}
+        <div className="border-b bg-white shadow-sm">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between py-4">
+              <div className="flex items-center gap-4">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowChatScreen(false)}
+                  className="hover:bg-gray-100 transition-all duration-200"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back to Setup
+                </Button>
+                <div className="flex items-center gap-3">
+                  <div 
+                    className="w-10 h-10 rounded-full flex items-center justify-center shadow-lg"
+                    style={{ backgroundColor: botData.appearance.color_code }}
+                  >
+                    <Bot className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h1 className="text-xl font-bold text-gray-900">{botData.basic_info.chatbot_name}</h1>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                      <span className="text-sm text-gray-600">Online • Ready to chat</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Chat Container */}
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="bg-white rounded-2xl shadow-xl overflow-hidden" style={{ height: 'calc(100vh - 200px)' }}>
+            {/* Chat Messages */}
+            <div className="flex-1 p-6 overflow-y-auto bg-gradient-to-b from-gray-50/50 to-white" style={{ height: 'calc(100% - 80px)' }}>
+              <div className="space-y-4">
+                {chatMessages.map((message) => (
+                  <div key={message.id} className={`flex ${message.isUser ? 'justify-end' : 'justify-start'}`}>
+                    {!message.isUser && (
+                      <div 
+                        className="w-8 h-8 rounded-full flex items-center justify-center mr-3 shadow-md flex-shrink-0"
+                        style={{ backgroundColor: botData.appearance.color_code }}
+                      >
+                        <Bot className="w-4 h-4 text-white" />
+                      </div>
+                    )}
+                    <div className={`max-w-xs lg:max-w-md xl:max-w-lg ${message.isUser ? 'order-1' : 'order-2'}`}>
+                      <div 
+                        className={`px-4 py-3 rounded-2xl shadow-sm ${
+                          message.isUser 
+                            ? 'text-white rounded-tr-md' 
+                            : 'bg-white border border-gray-200 rounded-tl-md'
+                        }`}
+                        style={{ 
+                          backgroundColor: message.isUser ? botData.appearance.color_code : undefined 
+                        }}
+                      >
+                        <p className="text-sm leading-relaxed">{message.text}</p>
+                      </div>
+                      
+                      {/* Follow-up Questions */}
+                      {!message.isUser && message.followUpQuestions && message.followUpQuestions.length > 0 && (
+                        <div className="mt-3 space-y-2">
+                          <p className="text-xs text-gray-600 font-medium">You might also ask:</p>
+                          {message.followUpQuestions.map((question, index) => (
+                            <button
+                              key={index}
+                              onClick={() => sendChatMessage(question)}
+                              disabled={isSendingMessage}
+                              className="block w-full text-left p-3 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg text-sm transition-all duration-200 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              <span className="text-gray-700">{question}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      
+                      <div className={`text-xs text-gray-500 mt-1 ${message.isUser ? 'text-right' : 'text-left'}`}>
+                        {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                    </div>
+                    {message.isUser && (
+                      <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center ml-3 shadow-md flex-shrink-0">
+                        <span className="text-sm font-medium text-gray-600">You</span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+                <div ref={messagesEndRef} />
+              </div>
+            </div>
+
+            {/* Chat Input */}
+            <div className="border-t bg-white p-4">
+              <div className="flex gap-3">
+                <input
+                  type="text"
+                  placeholder={isSendingMessage ? "Sending..." : botData.basic_info.input_placeholder}
+                  disabled={isSendingMessage}
+                  className="flex-1 px-4 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && !isSendingMessage) {
+                      const target = e.target as HTMLInputElement;
+                      sendChatMessage(target.value);
+                      target.value = '';
+                    }
+                  }}
+                />
+                <Button
+                  onClick={(e) => {
+                    if (!isSendingMessage) {
+                      const input = e.currentTarget.previousElementSibling as HTMLInputElement;
+                      sendChatMessage(input.value);
+                      input.value = '';
+                    }
+                  }}
+                  disabled={isSendingMessage}
+                  className="px-6 py-3 rounded-full text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ backgroundColor: botData.appearance.color_code }}
+                >
+                  {isSendingMessage ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  ) : (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                    </svg>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen relative overflow-hidden">

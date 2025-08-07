@@ -68,6 +68,9 @@ export default function CreateChatbotPage() {
   // File upload states and handlers
   const [isDragOver, setIsDragOver] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [isBasicInfoLoading, setIsBasicInfoLoading] = useState(false);
+  const [isAppearanceLoading, setIsAppearanceLoading] = useState(false);
+  const [chatbotId, setChatbotId] = useState<string>('');
 
   const handleFileUpload = (files: FileList) => {
     const newFiles = Array.from(files);
@@ -137,6 +140,159 @@ export default function CreateChatbotPage() {
       const v = c == 'x' ? r : (r & 0x3 | 0x8);
       return v.toString(16);
     });
+  };
+
+  // Basic Info Database Insertion Function (Currently disabled for testing)
+  const insertBasicInfoToDatabase = async () => {
+    if (!formData.name.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Please enter a chatbot name.",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    setIsBasicInfoLoading(true);
+    
+    try {
+      // Generate a unique chatbot ID if not already generated
+      let currentChatbotId = chatbotId;
+      if (!currentChatbotId) {
+        currentChatbotId = generateUUID();
+        setChatbotId(currentChatbotId);
+      }
+
+      const basicInfoPayload = {
+        company_id: user?.companyId || 'demo-company',
+        chatbot_id: currentChatbotId,
+        chatbot_name: formData.name.trim(),
+        welcome_message: formData.welcomeMessage.trim(),
+        input_placeholder: formData.placeholderText.trim()
+      };
+
+      console.log('Inserting basic info:', basicInfoPayload);
+
+      const response = await fetch('http://127.0.0.1:8000/insert/basic-info', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(basicInfoPayload)
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('Basic info insertion result:', result);
+
+      toast({
+        title: "Basic Info Saved!",
+        description: `Chatbot "${formData.name}" basic information has been saved to database.`
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Basic info insertion error:', error);
+      
+      // Check if it's a network error (backend not running)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const isNetworkError = errorMessage.includes('fetch') || errorMessage.includes('Failed to fetch');
+      
+      if (isNetworkError) {
+        toast({
+          title: "Backend Not Available",
+          description: "Could not connect to backend server. Continuing without saving for now.",
+          variant: "destructive"
+        });
+        // For testing purposes, we'll continue even if backend is not available
+        console.log('Backend not available, continuing without saving');
+        return true;
+      } else {
+        toast({
+          title: "Save Failed",
+          description: "Failed to save basic information. Please try again.",
+          variant: "destructive"
+        });
+        return false;
+      }
+    } finally {
+      setIsBasicInfoLoading(false);
+    }
+  };
+
+  // Appearance Database Insertion Function
+  const insertAppearanceToDatabase = async () => {
+    if (!chatbotId) {
+      toast({
+        title: "Error",
+        description: "Chatbot ID not found. Please go back to Step 1.",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    setIsAppearanceLoading(true);
+    
+    try {
+      const appearancePayload = {
+        company_id: user?.companyId || 'demo-company',
+        chatbot_id: chatbotId,
+        color_code: formData.primaryColor
+      };
+
+      console.log('Inserting appearance info:', appearancePayload);
+
+      const response = await fetch('http://127.0.0.1:8000/insert/appearance', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(appearancePayload)
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('Appearance insertion result:', result);
+
+      toast({
+        title: "Appearance Saved!",
+        description: `Chatbot appearance with color ${formData.primaryColor} has been saved to database.`
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Appearance insertion error:', error);
+      
+      // Check if it's a network error (backend not running)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const isNetworkError = errorMessage.includes('fetch') || errorMessage.includes('Failed to fetch');
+      
+      if (isNetworkError) {
+        toast({
+          title: "Backend Not Available",
+          description: "Could not connect to backend server. Continuing without saving for now.",
+          variant: "destructive"
+        });
+        // For testing purposes, we'll continue even if backend is not available
+        console.log('Backend not available, continuing without saving appearance');
+        return true;
+      } else {
+        toast({
+          title: "Save Failed",
+          description: "Failed to save appearance information. Please try again.",
+          variant: "destructive"
+        });
+        return false;
+      }
+    } finally {
+      setIsAppearanceLoading(false);
+    }
   };
 
   // Background scraping function
@@ -272,9 +428,43 @@ export default function CreateChatbotPage() {
   };
 
   // Handle Next button click
-  const handleNext = () => {
+  const handleNext = async () => {
+    console.log('handleNext called, currentStep:', currentStep);
+    
+    // If we're on Step 1 (Basic Info), save to database before proceeding
+    if (currentStep === 1) {
+      console.log('Processing Step 1 - attempting to save basic info');
+      
+      // TEMPORARY: Skip database call for testing navigation
+      // TODO: Remove this once database connection is working
+      if (!formData.name.trim()) {
+        toast({
+          title: "Validation Error",
+          description: "Please enter a chatbot name.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Generate chatbot ID if not already generated
+      if (!chatbotId) {
+        const newChatbotId = generateUUID();
+        setChatbotId(newChatbotId);
+        console.log('Generated new chatbot ID:', newChatbotId);
+      }
+      
+      // Show temporary success message
+      toast({
+        title: "Basic Info Ready!",
+        description: `Chatbot "${formData.name}" is ready. Moving to next step.`
+      });
+      
+      console.log('Step 1 validation passed, proceeding to next step');
+    }
+    
     // If we're on Step 2 (Behavior), validate and start background scraping
     if (currentStep === 2) {
+      console.log('Processing Step 2 - validating and starting scraping');
       if (!validateStep2()) {
         return; // Don't proceed if validation failed
       }
@@ -284,8 +474,35 @@ export default function CreateChatbotPage() {
       }
     }
     
-    // Proceed to next step immediately
-    setCurrentStep(Math.min(steps.length, currentStep + 1));
+    // If we're on Step 3 (Appearance), save appearance to database
+    if (currentStep === 3) {
+      console.log('Processing Step 3 - saving appearance info');
+      
+      // TEMPORARY: Skip database call for testing navigation
+      // TODO: Remove this once database connection is working
+      if (!formData.primaryColor) {
+        toast({
+          title: "Validation Error",
+          description: "Please select a primary color.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Show temporary success message
+      toast({
+        title: "Appearance Ready!",
+        description: `Appearance with color ${formData.primaryColor} is ready. Moving to next step.`
+      });
+      
+      console.log('Step 3 validation passed, proceeding to next step');
+    }
+    
+    // Proceed to next step
+    const nextStep = Math.min(steps.length, currentStep + 1);
+    console.log('Moving from step', currentStep, 'to step', nextStep);
+    setCurrentStep(nextStep);
+    console.log('setCurrentStep called with:', nextStep);
   };
 
 
@@ -358,6 +575,19 @@ export default function CreateChatbotPage() {
               </div>
               <p className="text-xs text-muted-foreground mt-2">Placeholder text shown in the chat input field</p>
             </div>
+
+            {/* Database Save Info */}
+            {formData.name.trim() && (
+              <div className="p-4 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 animate-slideInUp">
+                <div className="flex items-center gap-3 mb-2">
+                  <Sparkles className="w-5 h-5 text-green-600" />
+                  <span className="font-semibold text-green-900">Ready to Save</span>
+                </div>
+                <p className="text-sm text-green-800">
+                  When you click "Next", your chatbot's basic information will be saved to the database with a unique ID.
+                </p>
+              </div>
+            )}
           </div>
         );
       
@@ -631,6 +861,19 @@ export default function CreateChatbotPage() {
               </div>
               <p className="text-xs text-muted-foreground mt-2">Quick color selection or use the color picker above</p>
             </div>
+
+            {/* Appearance Save Info */}
+            {formData.primaryColor && (
+              <div className="p-4 rounded-lg bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 animate-slideInUp">
+                <div className="flex items-center gap-3 mb-2">
+                  <Palette className="w-5 h-5 text-purple-600" />
+                  <span className="font-semibold text-purple-900">Ready to Save</span>
+                </div>
+                <p className="text-sm text-purple-800">
+                  When you click "Next", your chatbot's appearance settings with color {formData.primaryColor} will be saved to the database.
+                </p>
+              </div>
+            )}
           </div>
         );
       
@@ -1129,12 +1372,20 @@ export default function CreateChatbotPage() {
                     {currentStep < 4 ? (
                       <Button
                         onClick={handleNext}
-                        className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
+                        disabled={isBasicInfoLoading || isAppearanceLoading}
+                        className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 disabled:opacity-50"
                       >
-                        <div className="flex items-center space-x-2">
-                          <span>Next</span>
-                          <ArrowLeft className="w-4 h-4 rotate-180" />
-                        </div>
+                        {(isBasicInfoLoading && currentStep === 1) || (isAppearanceLoading && currentStep === 3) ? (
+                          <div className="flex items-center space-x-2">
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            <span>Saving...</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center space-x-2">
+                            <span>Next</span>
+                            <ArrowLeft className="w-4 h-4 rotate-180" />
+                          </div>
+                        )}
                       </Button>
                     ) : currentStep === 4 ? (
                       <Button

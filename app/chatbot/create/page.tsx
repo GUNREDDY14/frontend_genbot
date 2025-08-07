@@ -31,6 +31,8 @@ export default function CreateChatbotPage() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
+  const [scrapingStatus, setScrapingStatus] = useState<'idle' | 'processing' | 'completed' | 'failed'>('idle');
+  const [scrapingStarted, setScrapingStarted] = useState(false);
   
   const [formData, setFormData] = useState<ChatbotFormData>({
     name: '',
@@ -61,27 +63,11 @@ export default function CreateChatbotPage() {
     }));
   };
 
-  const addUrlField = () => {
-    setFormData(prev => ({
-      ...prev,
-      urls: [...prev.urls, '']
-    }));
-  };
 
-  const removeUrlField = (index: number) => {
-    if (formData.urls.length > 1) {
-      const newUrls = formData.urls.filter((_, i) => i !== index);
-      setFormData(prev => ({
-        ...prev,
-        urls: newUrls
-      }));
-    }
-  };
 
   // File upload states and handlers
   const [isDragOver, setIsDragOver] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
-  const [isScrapingLoading, setIsScrapingLoading] = useState(false);
 
   const handleFileUpload = (files: FileList) => {
     const newFiles = Array.from(files);
@@ -144,163 +130,172 @@ export default function CreateChatbotPage() {
     }
   };
 
-  // Scraping API call function
-  const handleScraping = async () => {
-    const validUrls = formData.urls.filter(url => url.trim() !== '');
+  // Generate random UUID for company_id
+  const generateUUID = () => {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      const r = Math.random() * 16 | 0;
+      const v = c == 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  };
+
+  // Background scraping function
+  const startBackgroundScraping = async () => {
+    const userUrl = formData.urls[0]?.trim();
     const validFilePaths = formData.filePaths;
 
-    if (validUrls.length === 0 && validFilePaths.length === 0) {
-      toast({
-        title: "No Sources Found",
-        description: "Please add at least one URL or upload a file before proceeding.",
-        variant: "destructive"
-      });
-      return false;
-    }
-
-    setIsScrapingLoading(true);
-    
-    try {
-      // Prepare requests for each URL
-      const urlRequests = validUrls.map(url => 
-        fetch('http://127.0.0.1:8000/Scrape/sentiment_analysis_scrape', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            url: url,
-            company_id: user?.companyId || 'demo-company',
-            file_path: '' // Empty for URL requests
-          })
-        })
-      );
-
-      // Prepare requests for each file
-      const fileRequests = validFilePaths.map(filePath => 
-        fetch('http://127.0.0.1:8000/Scrape/sentiment_analysis_scrape', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            url: '', // Empty for file requests
-            company_id: user?.companyId || 'demo-company',
-            file_path: filePath
-          })
-        })
-      );
-
-      // Execute all requests
-      const allRequests = [...urlRequests, ...fileRequests];
-      const responses = await Promise.all(allRequests);
-
-      // Check if all requests were successful
-      const failedRequests = responses.filter(response => !response.ok);
-      
-      if (failedRequests.length > 0) {
-        throw new Error(`${failedRequests.length} out of ${responses.length} scraping requests failed`);
-      }
-
-      // Parse all responses
-      const results = await Promise.all(responses.map(response => response.json()));
-      
-      console.log('Scraping results:', results);
-
-      toast({
-        title: "Scraping Complete!",
-        description: `Successfully processed ${validUrls.length} URLs and ${validFilePaths.length} files.`
-      });
-
-      return true;
-    } catch (error) {
-      console.error('Scraping error:', error);
-      toast({
-        title: "Scraping Failed",
-        description: "Failed to process knowledge sources. Please try again.",
-        variant: "destructive"
-      });
-      return false;
-    } finally {
-      setIsScrapingLoading(false);
-    }
-  };
-
-  // Handle Next button click
-  const handleNext = async () => {
-    // If we're on Step 2 (Behavior), trigger scraping before proceeding
-    if (currentStep === 2) {
-      const scrapingSuccess = await handleScraping();
-      if (!scrapingSuccess) {
-        return; // Don't proceed if scraping failed
-      }
-    }
-    
-    // Proceed to next step
-    setCurrentStep(Math.min(steps.length, currentStep + 1));
-  };
-
-  const handleSubmit = async () => {
-    if (!formData.name.trim()) {
-      toast({
-        title: "Validation Error",
-        description: "Please enter a chatbot name.",
-        variant: "destructive"
-      });
+    if (!userUrl && validFilePaths.length === 0) {
       return;
     }
 
-    setIsLoading(true);
+    setScrapingStatus('processing');
+    setScrapingStarted(true);
     
     try {
-      // Prepare the payload for scraping API
-      const scrapingPayload = {
-        chatbot_name: formData.name,
-        welcome_message: formData.welcomeMessage,
-        placeholder_text: formData.placeholderText,
-        tone: formData.tone,
-        primary_color: formData.primaryColor,
-        response_length: formData.responseLength,
-        urls: formData.urls.filter(url => url.trim() !== ''),
-        file_paths: formData.filePaths, // File paths for scraping
-        additional_info: formData.additionalInfo,
-        company_id: user?.companyId || 'demo-company'
-      };
+      // Generate random UUID for company_id
+      const companyId = generateUUID();
+      
+      // Prepare single request with URL and file_path
+      const url = userUrl || "https://example.com/";
+      const file_path = validFilePaths.length > 0 ? validFilePaths[0] : "";
 
-      console.log('Scraping payload:', scrapingPayload);
-      
-      // In a real implementation, you would:
-      // 1. Upload files to your server/cloud storage
-      // 2. Get the actual file paths
-      // 3. Send the payload to your scraping API
-      
-      // Simulate API call for now
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      toast({
-        title: "Success!",
-        description: `Your chatbot "${formData.name}" has been created successfully with ${formData.filePaths.length} uploaded files.`
+      console.log('Starting scraping request with payload:', {
+        url: url,
+        company_id: companyId,
+        file_path: file_path
       });
+
+      const response = await fetch('http://127.0.0.1:8000/scrape', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url: url,
+          company_id: companyId,
+          file_path: file_path
+        })
+      });
+
+      console.log('Response status:', response.status);
+      console.log('Response headers:', response.headers);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Response error text:', errorText);
+        throw new Error(`Scraping request failed with status: ${response.status}. Error: ${errorText}`);
+      }
+
+      // Check if response is a file download (CSV) or JSON
+      const contentType = response.headers.get('content-type');
+      console.log('Response content-type:', contentType);
       
-      // Redirect to chatbots page
-      router.push('/dashboard');
+      let result;
+      if (contentType && contentType.includes('text/csv')) {
+        // Handle CSV file response (successful scraping)
+        console.log('Received CSV file response - scraping successful');
+        result = { success: true, message: 'CSV file received', type: 'file' };
+      } else {
+        // Handle JSON response (no content case or error)
+        try {
+          const responseText = await response.text();
+          console.log('Raw response text:', responseText);
+          result = JSON.parse(responseText);
+        } catch (parseError) {
+          console.error('JSON parse error:', parseError);
+          throw new Error('Invalid response format from server');
+        }
+      }
+      
+      console.log('Scraping result:', result);
+      setScrapingStatus('completed');
+
+      // Show appropriate success message
+      if (result.type === 'file') {
+        toast({
+          title: "Scraping Complete!",
+          description: `Successfully processed and indexed the knowledge source. Data has been stored.`
+        });
+      } else if (result.message) {
+        toast({
+          title: "Scraping Complete!",
+          description: result.message
+        });
+      } else {
+        toast({
+          title: "Scraping Complete!",
+          description: `Successfully processed the knowledge source.`
+        });
+      }
+
     } catch (error) {
-      console.error('Error creating chatbot:', error);
+      const errorObj = error as Error;
+      console.error('Scraping error details:', {
+        message: errorObj.message,
+        stack: errorObj.stack,
+        name: errorObj.name
+      });
+      setScrapingStatus('failed');
+      
+      // More specific error messages
+      let errorMessage = "Failed to process knowledge sources. Please try again.";
+      if (errorObj.message.includes('fetch')) {
+        errorMessage = "Network error: Could not connect to the server. Please check if the backend is running.";
+      } else if (errorObj.message.includes('CORS')) {
+        errorMessage = "CORS error: Server configuration issue. Please check backend CORS settings.";
+      } else if (errorObj.message.includes('JSON')) {
+        errorMessage = "Server response error: Invalid response format.";
+      }
+
       toast({
-        title: "Error",
-        description: "Failed to create chatbot. Please try again.",
+        title: "Scraping Failed",
+        description: errorMessage,
         variant: "destructive"
       });
-    } finally {
-      setIsLoading(false);
     }
   };
+
+  // Validation function for step 2
+  const validateStep2 = () => {
+    const userUrl = formData.urls[0]?.trim();
+    const validFilePaths = formData.filePaths;
+
+    if (!userUrl && validFilePaths.length === 0) {
+      toast({
+        title: "No Sources Found",
+        description: "Please add a URL or upload a file before proceeding.",
+        variant: "destructive"
+      });
+      return false;
+    }
+    return true;
+  };
+
+  // Handle Next button click
+  const handleNext = () => {
+    // If we're on Step 2 (Behavior), validate and start background scraping
+    if (currentStep === 2) {
+      if (!validateStep2()) {
+        return; // Don't proceed if validation failed
+      }
+      // Start background scraping (non-blocking)
+      if (!scrapingStarted) {
+        startBackgroundScraping();
+      }
+    }
+    
+    // Proceed to next step immediately
+    setCurrentStep(Math.min(steps.length, currentStep + 1));
+  };
+
+
 
   const steps = [
     { id: 1, title: "Basic Info", icon: Bot },
     { id: 2, title: "Behavior", icon: Settings },
     { id: 3, title: "Appearance", icon: Palette },
-    { id: 4, title: "Preview", icon: Eye }
+    { id: 4, title: "Preview", icon: Eye },
+    { id: 5, title: "Complete", icon: Sparkles }
   ];
 
   const renderStepContent = () => {
@@ -409,47 +404,20 @@ export default function CreateChatbotPage() {
             <div className="group">
               <Label className="flex items-center gap-2 text-sm font-semibold text-foreground mb-3">
                 <Globe className="w-4 h-4 text-primary" />
-                Knowledge Sources (URLs)
+                Knowledge Source (URL)
               </Label>
-              <div className="space-y-3">
-                {formData.urls.map((url, index) => (
-                  <div key={index} className="flex gap-2 animate-slideInUp" style={{ animationDelay: `${index * 100}ms` }}>
-                    <div className="relative flex-1">
-                      <Input
-                        value={url}
-                        onChange={(e) => handleUrlChange(index, e.target.value)}
-                        placeholder="https://example.com/documentation"
-                        className="h-12 pl-4 pr-12 bg-background/50 border-border/50 focus:border-primary/50 focus:ring-primary/20 transition-all duration-200 hover:border-primary/30"
-                      />
-                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                        <Globe className="w-4 h-4 text-muted-foreground" />
-                      </div>
-                    </div>
-                    {formData.urls.length > 1 && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => removeUrlField(index)}
-                        className="h-12 px-3 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-all duration-200"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={addUrlField}
-                  className="w-full h-12 border-dashed border-2 hover:border-primary hover:bg-primary/5 transition-all duration-200 hover:scale-105"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Knowledge Source
-                </Button>
+              <div className="relative">
+                <Input
+                  value={formData.urls[0] || ''}
+                  onChange={(e) => handleUrlChange(0, e.target.value)}
+                  placeholder="https://example.com/documentation"
+                  className="h-12 pl-4 pr-12 bg-background/50 border-border/50 focus:border-primary/50 focus:ring-primary/20 transition-all duration-200 hover:border-primary/30"
+                />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  <Globe className="w-4 h-4 text-muted-foreground" />
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground mt-2">URLs that your chatbot can learn from to provide better answers</p>
+              <p className="text-xs text-muted-foreground mt-2">Single URL that your chatbot can learn from to provide better answers</p>
             </div>
 
             {/* File Upload Section */}
@@ -557,15 +525,15 @@ export default function CreateChatbotPage() {
             </div>
 
             {/* Scraping Info */}
-            {(formData.urls.filter(url => url.trim()).length > 0 || formData.filePaths.length > 0) && (
+            {(formData.urls[0]?.trim() || formData.filePaths.length > 0) && (
               <div className="p-4 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 animate-slideInUp">
                 <div className="flex items-center gap-3 mb-2">
                   <Sparkles className="w-5 h-5 text-blue-600" />
                   <span className="font-semibold text-blue-900">Ready for Processing</span>
                 </div>
                 <p className="text-sm text-blue-800">
-                  When you click "Next", we'll process {formData.urls.filter(url => url.trim()).length} URL{formData.urls.filter(url => url.trim()).length !== 1 ? 's' : ''} 
-                  {formData.urls.filter(url => url.trim()).length > 0 && formData.filePaths.length > 0 ? ' and ' : ''}
+                  When you click "Next", we'll process {formData.urls[0]?.trim() ? 'the URL' : ''} 
+                  {formData.urls[0]?.trim() && formData.filePaths.length > 0 ? ' and ' : ''}
                   {formData.filePaths.length > 0 ? `${formData.filePaths.length} file${formData.filePaths.length !== 1 ? 's' : ''}` : ''} 
                   {' '}to extract knowledge for your chatbot.
                 </p>
@@ -708,8 +676,8 @@ export default function CreateChatbotPage() {
                     <span className="font-medium capitalize">{formData.responseLength}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Knowledge Sources:</span>
-                    <span className="font-medium">{formData.urls.filter(url => url.trim()).length} URLs</span>
+                    <span>Knowledge Source:</span>
+                    <span className="font-medium">{formData.urls[0]?.trim() ? '1 URL' : '0 URLs'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Uploaded Files:</span>
@@ -788,6 +756,116 @@ export default function CreateChatbotPage() {
                 Your chatbot configuration is complete. Click "Create Chatbot" to bring it to life!
               </p>
             </div>
+          </div>
+        );
+      
+      case 5:
+        return (
+          <div className="space-y-8">
+            <div className="text-center">
+              {scrapingStatus === 'processing' ? (
+                <>
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
+                    <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                  <h3 className="text-2xl font-bold text-foreground mb-2">Processing Your Content</h3>
+                  <p className="text-muted-foreground text-lg mb-6">
+                    The scraping and indexing of the website is in process. Please wait...
+                  </p>
+                  <div className="flex items-center justify-center gap-2 text-blue-600">
+                    <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                    <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                  </div>
+                </>
+              ) : scrapingStatus === 'completed' ? (
+                <>
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg">
+                    <Sparkles className="w-8 h-8 text-white" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-foreground mb-2">Your Bot is Ready!</h3>
+                  <p className="text-muted-foreground text-lg mb-6">
+                    Your chatbot has been successfully created and trained with your content.
+                  </p>
+                  <Button
+                    onClick={() => router.push('/dashboard')}
+                    className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
+                  >
+                    <Bot className="w-4 h-4 mr-2" />
+                    Open Your Bot
+                  </Button>
+                </>
+              ) : scrapingStatus === 'failed' ? (
+                <>
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center shadow-lg">
+                    <X className="w-8 h-8 text-white" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-foreground mb-2">Processing Failed</h3>
+                  <p className="text-muted-foreground text-lg mb-6">
+                    There was an error processing your content. Please try again.
+                  </p>
+                  <div className="flex gap-3 justify-center">
+                    <Button
+                      onClick={() => {
+                        setScrapingStatus('idle');
+                        setScrapingStarted(false);
+                        setCurrentStep(2);
+                      }}
+                      variant="outline"
+                      className="hover:bg-primary/5 hover:border-primary/30 transition-all duration-200"
+                    >
+                      <ArrowLeft className="w-4 h-4 mr-2" />
+                      Go Back
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setScrapingStatus('idle');
+                        setScrapingStarted(false);
+                        startBackgroundScraping();
+                      }}
+                      className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+                    >
+                      Try Again
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
+                    <Sparkles className="w-8 h-8 text-white" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-foreground mb-2">Almost Ready!</h3>
+                  <p className="text-muted-foreground text-lg">
+                    Your chatbot is being prepared...
+                  </p>
+                </>
+              )}
+            </div>
+
+            {scrapingStatus === 'completed' && (
+              <div className="grid gap-4">
+                <div className="p-4 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200">
+                  <div className="flex items-center gap-3 mb-2">
+                    <Bot className="w-5 h-5 text-green-600" />
+                    <span className="font-semibold text-green-900">Chatbot Details</span>
+                  </div>
+                  <div className="space-y-2 text-sm text-green-800">
+                    <div className="flex justify-between">
+                      <span>Name:</span>
+                      <span className="font-medium">{formData.name}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Status:</span>
+                      <span className="font-medium text-green-600">✅ Ready</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Knowledge Source:</span>
+                      <span className="font-medium">✅ Processed</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         );
       
@@ -1020,7 +1098,7 @@ export default function CreateChatbotPage() {
 
         {/* Main Content */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className={`grid gap-8 ${currentStep === 5 ? 'grid-cols-1 max-w-2xl mx-auto' : 'grid-cols-1 lg:grid-cols-2'}`}>
             {/* Form Section */}
             <div className="animate-slideInLeft">
               <Card className="bg-card/80 backdrop-blur-lg border-border/50 shadow-2xl hover:shadow-3xl transition-all duration-300">
@@ -1041,77 +1119,63 @@ export default function CreateChatbotPage() {
                     <Button
                       variant="outline"
                       onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
-                      disabled={currentStep === 1}
+                      disabled={currentStep === 1 || currentStep === 5}
                       className="hover:bg-primary/5 hover:border-primary/30 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <ArrowLeft className="w-4 h-4 mr-2" />
                       Previous
                     </Button>
                     
-                    {currentStep < steps.length ? (
+                    {currentStep < 4 ? (
                       <Button
                         onClick={handleNext}
-                        disabled={isScrapingLoading}
-                        className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 disabled:opacity-50"
+                        className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
                       >
-                        {isScrapingLoading && currentStep === 2 ? (
-                          <div className="flex items-center space-x-2">
-                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                            <span>Processing...</span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center space-x-2">
-                            <span>Next</span>
-                            <ArrowLeft className="w-4 h-4 rotate-180" />
-                          </div>
-                        )}
+                        <div className="flex items-center space-x-2">
+                          <span>Next</span>
+                          <ArrowLeft className="w-4 h-4 rotate-180" />
+                        </div>
                       </Button>
-                    ) : (
+                    ) : currentStep === 4 ? (
                       <Button
-                        onClick={handleSubmit}
-                        disabled={isLoading}
-                        className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 disabled:opacity-50"
+                        onClick={handleNext}
+                        className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
                       >
-                        {isLoading ? (
-                          <div className="flex items-center space-x-2">
-                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                            <span>Creating...</span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center space-x-2">
-                            <Bot className="w-4 h-4" />
-                            <span>Create Chatbot</span>
-                          </div>
-                        )}
+                        <div className="flex items-center space-x-2">
+                          <Bot className="w-4 h-4" />
+                          <span>Create Chatbot</span>
+                        </div>
                       </Button>
-                    )}
+                    ) : null}
                   </div>
                 </CardContent>
               </Card>
             </div>
 
-            {/* Preview Section */}
-            <div className="animate-slideInRight">
-              <Card className="h-[700px] bg-card/80 backdrop-blur-lg border-border/50 shadow-2xl hover:shadow-3xl transition-all duration-300 sticky top-8">
-                <CardHeader className="bg-gradient-to-r from-emerald-50 to-teal-50 border-b border-border/30">
-                  <CardTitle className="flex items-center gap-3 text-xl">
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
-                      <Eye className="w-4 h-4 text-white" />
+            {/* Preview Section - Hide on step 5 */}
+            {currentStep !== 5 && (
+              <div className="animate-slideInRight">
+                <Card className="h-[700px] bg-card/80 backdrop-blur-lg border-border/50 shadow-2xl hover:shadow-3xl transition-all duration-300 sticky top-8">
+                  <CardHeader className="bg-gradient-to-r from-emerald-50 to-teal-50 border-b border-border/30">
+                    <CardTitle className="flex items-center gap-3 text-xl">
+                      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
+                        <Eye className="w-4 h-4 text-white" />
+                      </div>
+                      Live Preview
+                      <div className="ml-auto flex items-center gap-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                        <span className="text-xs text-muted-foreground">Live</span>
+                      </div>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-0 h-[calc(100%-80px)]">
+                    <div className="h-full border rounded-lg overflow-hidden bg-gradient-to-b from-gray-50 to-white animate-fadeIn">
+                      {renderPreview()}
                     </div>
-                    Live Preview
-                    <div className="ml-auto flex items-center gap-2">
-                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                      <span className="text-xs text-muted-foreground">Live</span>
-                    </div>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-0 h-[calc(100%-80px)]">
-                  <div className="h-full border rounded-lg overflow-hidden bg-gradient-to-b from-gray-50 to-white animate-fadeIn">
-                    {renderPreview()}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
           </div>
         </div>
       </div>

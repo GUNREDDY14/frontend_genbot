@@ -17,6 +17,7 @@ export default function DashboardPage() {
   const [activeChatbots, setActiveChatbots] = useState<number>(1);
   const [leads, setLeads] = useState<LeadData[]>([]);
   const [isLoadingLeads, setIsLoadingLeads] = useState(true);
+  const [isPageLoaded, setIsPageLoaded] = useState(false);
 
   useEffect(() => {
     if (!user?.companyId) return;
@@ -70,6 +71,15 @@ export default function DashboardPage() {
     }, 2000);
   }, [user?.companyId]);
 
+  // Page load animation
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsPageLoaded(true);
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, []);
+
   // Mock data for dashboard stats
   const stats: DashboardStats = {
     activeChatbots: activeChatbots,
@@ -83,63 +93,93 @@ export default function DashboardPage() {
       title="Dashboard" 
       description="Overview of your chatbots and leads"
     >
-      {/* Create Bot Button */}
-      <div className="mb-6">
-        <Button
-          onClick={() => router.push('/chatbot/create')}
-          className="bg-primary hover:bg-primary/90"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Create Your Bot
-        </Button>
+      <div className={`transition-opacity duration-700 ${isPageLoaded ? 'opacity-100' : 'opacity-0'}`}>
+      {/* Header Actions */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+        <div className="flex items-center gap-4">
+          <Button
+            onClick={() => router.push('/chatbot/create')}
+            className="bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-700 hover:via-purple-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 border-0"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Create Your Bot
+          </Button>
+        </div>
+        <div className="flex items-center gap-2 text-sm bg-gradient-to-r from-amber-50 to-orange-50 px-4 py-2 rounded-full border border-amber-200/50">
+          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+          <span className="text-amber-700 font-medium">
+            Last updated: {new Date().toLocaleDateString()}
+          </span>
+        </div>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-6">
-        <StatCard
-          title="Active Chatbots"
-          value={stats.activeChatbots}
-          iconElement={<RiRobot3Fill />}
-          iconBgColor="bg-blue-100"
-          iconTextColor="text-blue-600"
-          linkText="View all"
-          linkHref="/chatbot/demo-company/demo-chatbot"
-        />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="animate-fadeIn" style={{ animationDelay: '0.1s' }}>
+          <StatCard
+            title="Active Chatbots"
+            value={stats.activeChatbots}
+            iconElement={<RiRobot3Fill />}
+            iconBgColor="bg-gradient-to-br from-cyan-100 via-blue-100 to-indigo-100"
+            iconTextColor="text-cyan-600"
+            linkText="View all"
+            linkHref="/chatbot/demo-company/demo-chatbot"
+          />
+        </div>
         
-        <StatCard
-          title="New Leads (7d)"
-          value={stats.newLeads}
-          iconElement={<span>👥</span>}
-          iconBgColor="bg-green-100"
-          iconTextColor="text-green-600"
-          linkText="View all"
-          linkHref="/leads"
-        />
+        <div className="animate-fadeIn" style={{ animationDelay: '0.2s' }}>
+          <StatCard
+            title="New Leads (7d)"
+            value={stats.newLeads}
+            iconElement={
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+            }
+            iconBgColor="bg-gradient-to-br from-emerald-100 via-green-100 to-teal-100"
+            iconTextColor="text-emerald-600"
+            linkText="View all"
+            linkHref="/leads"
+          />
+        </div>
         
-        <StatCard
-          title="Conversations (7d)"
-          value={stats.conversations}
-          iconElement={<span>💬</span>}
-          iconBgColor="bg-purple-100"
-          iconTextColor="text-purple-600"
-          linkText="View all"
-          linkHref="/conversations"
-        />
+        <div className="animate-fadeIn" style={{ animationDelay: '0.3s' }}>
+          <StatCard
+            title="Conversations (7d)"
+            value={stats.conversations}
+            iconElement={
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+            }
+            iconBgColor="bg-gradient-to-br from-violet-100 via-purple-100 to-fuchsia-100"
+            iconTextColor="text-violet-600"
+            linkText="View all"
+            linkHref="/conversations"
+          />
+        </div>
         
-        <StatCard
-          title="Email Campaigns"
-          value={stats.campaigns}
-          iconElement={<span>📧</span>}
-          iconBgColor="bg-orange-100"
-          iconTextColor="text-orange-600"
-          linkText="View all"
-          linkHref="/outreach"
-        />
+        <div className="animate-fadeIn" style={{ animationDelay: '0.4s' }}>
+          <StatCard
+            title="Email Campaigns"
+            value={stats.campaigns}
+            iconElement={
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+            }
+            iconBgColor="bg-gradient-to-br from-orange-100 via-amber-100 to-yellow-100"
+            iconTextColor="text-orange-600"
+            linkText="View all"
+            linkHref="/outreach"
+          />
+        </div>
       </div>
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
+      <div className="grid grid-cols-1 gap-6 animate-slideInUp" style={{ animationDelay: '0.5s' }}>
         <HotLeads leads={leads} isLoading={isLoadingLeads} />
+      </div>
       </div>
     </Dashboard>
   );

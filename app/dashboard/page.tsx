@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { DashboardStats, LeadData } from "@/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { RiRobot3Fill } from "react-icons/ri";
-import { Plus, Bot } from "lucide-react";
+import { Plus, Bot, Search } from "lucide-react";
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -103,6 +103,14 @@ export default function DashboardPage() {
           >
             <Plus className="w-4 h-4 mr-2" />
             Create Your Bot
+          </Button>
+          <Button
+            onClick={() => router.push('/seo-analysis')}
+            variant="outline"
+            className="border-green-200 text-green-700 hover:bg-green-50 hover:border-green-300 transition-all duration-300 transform hover:scale-105"
+          >
+            <Search className="w-4 h-4 mr-2" />
+            Get SEO Analysis
           </Button>
         </div>
         <div className="flex items-center gap-2 text-sm bg-gradient-to-r from-amber-50 to-orange-50 px-4 py-2 rounded-full border border-amber-200/50">

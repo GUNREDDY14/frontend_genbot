@@ -7,7 +7,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'SmartAssist - AI Chatbot Platform',
+  title: 'GenBotAI - AI Chatbot Platform',
   description: 'Create and manage AI chatbots for your business',
 };
 

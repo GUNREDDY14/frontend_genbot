@@ -153,7 +153,7 @@ export default function HomePage() {
 
               <p className="mt-8 text-lg sm:text-xl md:text-2xl leading-8 sm:leading-9 text-muted-foreground animate-slideInUp max-w-4xl mx-auto">
                 Transform your website into a <span className="font-semibold text-primary">24/7 customer support powerhouse</span>. 
-                SmartAssist automatically creates intelligent chatbots that understand your business 
+                GenBotAI automatically creates intelligent chatbots that understand your business 
                 and <span className="font-semibold text-secondary">delight your customers instantly</span>.
               </p>
 
@@ -413,7 +413,7 @@ export default function HomePage() {
                       <ChatBubbleLeftRightIcon className="w-6 h-6 text-white" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="font-bold text-white text-lg">SmartAssist Demo</h3>
+                      <h3 className="font-bold text-white text-lg">GenBotAI Demo</h3>
                       <div className="flex items-center gap-2">
                         <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
                         <p className="text-sm text-white/90">Online • Typically replies instantly</p>
@@ -585,7 +585,7 @@ export default function HomePage() {
             </h2>
             
             <p className="mx-auto max-w-3xl text-lg sm:text-xl leading-8 sm:leading-9 text-white/90 mb-12 animate-slideInUp">
-              Join thousands of businesses using SmartAssist to provide instant, intelligent customer support. 
+              Join thousands of businesses using GenBotAI to provide instant, intelligent customer support. 
               <span className="font-semibold text-yellow-200">Start your free trial today</span> - no credit card required!
             </p>
 
@@ -635,7 +635,7 @@ export default function HomePage() {
                 ))}
               </div>
               <p className="text-white/80 text-sm">
-                "SmartAssist increased our customer satisfaction by 40%" - Sarah, CEO at TechCorp
+                "GenBotAI increased our customer satisfaction by 40%" - Sarah, CEO at TechCorp
               </p>
             </div>
           </div>

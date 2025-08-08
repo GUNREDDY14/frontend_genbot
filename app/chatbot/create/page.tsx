@@ -1327,7 +1327,7 @@ export default function CreateChatbotPage() {
           <div className="flex items-center justify-center mt-2">
             <div className="text-xs text-muted-foreground flex items-center gap-1">
               <div className="w-1 h-1 bg-green-500 rounded-full animate-pulse"></div>
-              Powered by SmartAssist AI
+              Powered by GenBotAI
             </div>
           </div>
         </div>

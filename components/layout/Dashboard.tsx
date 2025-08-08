@@ -40,7 +40,7 @@ export default function Dashboard({ title, description, children }: DashboardPro
                 </div>
                 <div className="flex flex-col">
                   <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                    SmartAssist
+                    GenBotAI
                   </span>
                   <span className="text-xs text-slate-500 -mt-1">AI-Powered Platform</span>
                 </div>

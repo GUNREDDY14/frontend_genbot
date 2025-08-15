@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/input';
 import { APP_NAME, URLS } from '@/constants';
 import { useAuth } from '@/contexts/AuthContext';
+import { GoogleSignInConfig, GoogleButtonOptions, GoogleCredentialResponse } from '@/types/google-auth';
 
 export default function SignInPage() {
   const [formData, setFormData] = useState({
@@ -18,9 +19,73 @@ export default function SignInPage() {
   const [success, setSuccess] = useState('');
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login } = useAuth();
+  const { login, googleLogin } = useAuth();
 
   const message = searchParams.get('message');
+
+  const handleCredentialResponse = useCallback(async (response: GoogleCredentialResponse) => {
+    const idToken = response.credential;
+    setIsLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      setSuccess('Authenticating with Google...');
+      await googleLogin(idToken);
+      setSuccess('Google Sign-In successful! Redirecting to dashboard...');
+      
+      // Redirect to dashboard after a short delay
+      setTimeout(() => {
+        router.push(URLS.DASHBOARD);
+      }, 1000);
+    } catch (error) {
+      console.error('Google Sign-In error:', error);
+      setError('Google Sign-In failed. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [googleLogin, router]);
+
+  const initializeGoogleSignIn = useCallback(() => {
+    if (window.google) {
+      window.google.accounts.id.initialize({
+        client_id: '509838209146-4n5t374u95tjumcof4r6milatqro07is.apps.googleusercontent.com',
+        callback: handleCredentialResponse,
+        auto_prompt: false,
+      });
+
+      // Render the Google Sign-In button with larger size
+      const googleButtonElement = document.getElementById('google-signin-button');
+      if (googleButtonElement) {
+        window.google.accounts.id.renderButton(googleButtonElement, {
+          type: 'standard',
+          size: 'large',
+          theme: 'outline',
+          text: 'signin_with',
+          shape: 'rectangular',
+          logo_alignment: 'left',
+        });
+      }
+    }
+  }, [handleCredentialResponse]);
+
+  // Initialize Google Sign-In
+  useEffect(() => {
+    // Load Google Identity Services script
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    script.onload = initializeGoogleSignIn;
+    document.head.appendChild(script);
+
+    return () => {
+      // Cleanup script if component unmounts
+      if (document.head.contains(script)) {
+        document.head.removeChild(script);
+      }
+    };
+  }, [initializeGoogleSignIn]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -67,7 +132,7 @@ export default function SignInPage() {
       {/* Decorative elements */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -left-40 w-80 h-80 bg-blue-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse"></div>
-        <div className="absolute -bottom-40 -right-40 w-80 h-80 bg-purple-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse delay-1000"></div>
+        <div className="absolute -bottom-40 -right-40 w-80 h-80 bg-purple-200 rounded-full mix-blend-multiply filter blur-xl opacity-700 animate-pulse delay-1000"></div>
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-200 rounded-full mix-blend-multiply filter blur-xl opacity-50 animate-pulse delay-500"></div>
       </div>
 
@@ -132,6 +197,28 @@ export default function SignInPage() {
               </div>
             </div>
           )}
+
+          {/* Google Sign-In Button */}
+          <div className="mb-6">
+            <div 
+              id="google-signin-button" 
+              className="w-full flex justify-center"
+              style={{
+                transform: 'scale(1.2)',
+                transformOrigin: 'center',
+                margin: '20px 0'
+              }}
+            ></div>
+          </div>
+
+          <div className="relative mb-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-border/30" />
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-4 bg-card text-muted-foreground">Or continue with email</span>
+            </div>
+          </div>
 
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div className="space-y-5">
@@ -232,17 +319,6 @@ export default function SignInPage() {
               >
                 Create new account
               </Link>
-            </div>
-
-            <div className="text-center">
-              <div className="inline-flex items-center px-4 py-2 rounded-lg bg-amber-50 border border-amber-200">
-                <svg className="w-4 h-4 text-amber-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                </svg>
-                <p className="text-xs text-amber-700 font-medium">
-                  Demo mode: Any credentials will work
-                </p>
-              </div>
             </div>
           </form>
         </div>

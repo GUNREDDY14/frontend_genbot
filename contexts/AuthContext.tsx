@@ -12,6 +12,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<void>;
+  googleLogin: (idToken: string) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
 }
@@ -65,6 +66,43 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const googleLogin = async (idToken: string) => {
+    setIsLoading(true);
+    try {
+      // Send the ID token to your FastAPI backend
+      const response = await fetch('http://127.0.0.1:8000/auth/api/auth/google', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id_token: idToken })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Google authentication failed');
+      }
+
+      const data = await response.json();
+      console.log('Backend response:', data);
+
+      // Create user from Google data
+      const googleUser: User = {
+        id: data.user_id || `google-${Date.now()}`,
+        email: data.email || 'google-user@example.com',
+        name: data.name || 'Google User',
+        companyId: data.company_id || 'demo-company',
+      };
+
+      setUser(googleUser);
+    } catch (error) {
+      console.error('Google login error:', error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const logout = () => {
     setUser(null);
   };
@@ -72,6 +110,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const value = {
     user,
     login,
+    googleLogin,
     logout,
     isLoading,
   };

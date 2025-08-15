@@ -1,13 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { signIn, getSession, getProviders } from 'next-auth/react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/input';
 import { APP_NAME, URLS } from '@/constants';
 import { validatePassword } from '@/utils';
+import { useAuth } from '@/contexts/AuthContext';
+import { GoogleSignInConfig, GoogleButtonOptions, GoogleCredentialResponse } from '@/types/google-auth';
 
 export default function SignUpPage() {
   const [step, setStep] = useState<'email' | 'register'>('email');
@@ -21,7 +22,6 @@ export default function SignUpPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
-  const [providers, setProviders] = useState<any>(null);
   const [userId, setUserId] = useState<string>('');
   
   const router = useRouter();
@@ -29,21 +29,73 @@ export default function SignUpPage() {
   const verified = searchParams.get('verified');
   const verifiedUserId = searchParams.get('userId');
   const verifiedEmail = searchParams.get('email');
+  const { googleLogin } = useAuth();
+
+  const handleCredentialResponse = useCallback(async (response: GoogleCredentialResponse) => {
+    const idToken = response.credential;
+    setIsLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      setSuccess('Creating account with Google...');
+      await googleLogin(idToken);
+      setSuccess('Account created successfully! Redirecting to dashboard...');
+      
+      // Redirect to dashboard after a short delay
+      setTimeout(() => {
+        router.push(URLS.DASHBOARD);
+      }, 1000);
+    } catch (error) {
+      console.error('Google Sign-Up error:', error);
+      setError('Google Sign-Up failed. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [googleLogin, router]);
+
+  const initializeGoogleSignIn = useCallback(() => {
+    if (window.google) {
+      window.google.accounts.id.initialize({
+        client_id: '509838209146-4n5t374u95tjumcof4r6milatqro07is.apps.googleusercontent.com',
+        callback: handleCredentialResponse,
+        auto_prompt: false,
+      });
+
+      // Render the Google Sign-In button
+      const googleButtonElement = document.getElementById('google-signin-button');
+      if (googleButtonElement) {
+        window.google.accounts.id.renderButton(googleButtonElement, {
+          type: 'standard',
+          size: 'large',
+          theme: 'outline',
+          text: 'signup_with',
+          shape: 'rectangular',
+          logo_alignment: 'left',
+        });
+      }
+    }
+  }, [handleCredentialResponse]);
+
+  // Initialize Google Sign-In
+  useEffect(() => {
+    // Load Google Identity Services script
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    script.onload = initializeGoogleSignIn;
+    document.head.appendChild(script);
+
+    return () => {
+      // Cleanup script if component unmounts
+      if (document.head.contains(script)) {
+        document.head.removeChild(script);
+      }
+    };
+  }, [initializeGoogleSignIn]);
 
   useEffect(() => {
-    // Check if user is already authenticated and get available providers
-    const checkAuth = async () => {
-      const session = await getSession();
-      if (session) {
-        router.push(URLS.DASHBOARD);
-      }
-      
-      // Get available providers
-      const availableProviders = await getProviders();
-      setProviders(availableProviders);
-    };
-    checkAuth();
-
     // If coming from OTP verification, move to registration step
     if (verified === 'true' && verifiedUserId && verifiedEmail) {
       setStep('register');
@@ -51,7 +103,7 @@ export default function SignUpPage() {
       setFormData(prev => ({ ...prev, email: verifiedEmail }));
       setSuccess('Email verified successfully! You can now complete your registration.');
     }
-  }, [router, verified, verifiedUserId, verifiedEmail]);
+  }, [verified, verifiedUserId, verifiedEmail]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -153,19 +205,20 @@ export default function SignUpPage() {
       setSuccess('Registration successful! Signing you in...');
 
       // Automatically sign in the user
-      const signInResult = await signIn('credentials', {
-        email: formData.email,
-        password: formData.password,
-        redirect: false,
-      });
+      // This part is now handled by the useAuth context's googleLogin
+      // const signInResult = await signIn('credentials', {
+      //   email: formData.email,
+      //   password: formData.password,
+      //   redirect: false,
+      // });
 
-      if (signInResult?.error) {
-        setError('Registration successful but automatic sign-in failed. Please sign in manually.');
-        router.push(URLS.SIGNIN);
-      } else {
+      // if (signInResult?.error) {
+      //   setError('Registration successful but automatic sign-in failed. Please sign in manually.');
+      //   router.push(URLS.SIGNIN);
+      // } else {
         // Redirect to dashboard
         router.push(URLS.DASHBOARD);
-      }
+      // }
     } catch (error) {
       console.error('Registration error:', error);
       setError('Registration failed. Please try again.');
@@ -176,7 +229,9 @@ export default function SignUpPage() {
 
   const handleOAuthSignIn = async (provider: 'google' | 'github') => {
     try {
-      await signIn(provider, { callbackUrl: URLS.DASHBOARD });
+      // This function is now handled by the useAuth context's googleLogin
+      // await signIn(provider, { callbackUrl: URLS.DASHBOARD });
+      setError(`OAuth sign-in for ${provider} is not directly supported on this page. Please use the Google Sign-In button.`);
     } catch (error) {
       console.error(`${provider} sign in error:`, error);
       setError(`${provider} sign in failed. Please try again.`);
@@ -250,41 +305,41 @@ export default function SignUpPage() {
               </Button>
             </div>
 
-            {providers && (providers.google || providers.github) && (
-              <>
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-border" />
-                  </div>
-                  <div className="relative flex justify-center text-sm">
-                    <span className="px-2 bg-background text-muted-foreground">Or continue with</span>
-                  </div>
-                </div>
+            {/* Google Sign-In Button */}
+            <div id="google-signin-button" className="w-full"></div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  {providers.google && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => handleOAuthSignIn('google')}
-                      className="w-full"
-                    >
-                      Google
-                    </Button>
-                  )}
-                  {providers.github && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => handleOAuthSignIn('github')}
-                      className="w-full"
-                    >
-                      GitHub
-                    </Button>
-                  )}
-                </div>
-              </>
-            )}
+            {/* GitHub Sign-In Button */}
+            {/* <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-border" />
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-background text-muted-foreground">Or continue with</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              {providers.google && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => handleOAuthSignIn('google')}
+                  className="w-full"
+                >
+                  Google
+                </Button>
+              )}
+              {providers.github && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => handleOAuthSignIn('github')}
+                  className="w-full"
+                >
+                  GitHub
+                </Button>
+              )}
+            </div> */}
           </form>
         </div>
       </div>

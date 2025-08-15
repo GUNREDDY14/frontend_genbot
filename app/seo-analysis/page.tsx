@@ -135,201 +135,105 @@ export default function SEOAnalysisPage() {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* SEO Analysis Content */}
-          <div className="lg:col-span-2">
-            <Card className="bg-white shadow-xl border-0">
-              <CardHeader className="bg-gradient-to-r from-green-50 to-blue-50 border-b border-green-100">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                    <Search className="w-5 h-5 text-green-600" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-xl text-gray-900">SEO Analysis Report</CardTitle>
-                    <p className="text-sm text-gray-600 mt-1">
-                      {isLoading ? 'Generating analysis...' : 'Complete website SEO analysis and recommendations'}
-                    </p>
-                  </div>
+        {/* SEO Analysis Content */}
+        <div className="max-w-4xl mx-auto">
+          <Card className="bg-white shadow-xl border-0">
+            <CardHeader className="bg-gradient-to-r from-green-50 to-blue-50 border-b border-green-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                  <Search className="w-5 h-5 text-green-600" />
                 </div>
-              </CardHeader>
-              <CardContent className="p-6">
-                {isLoading ? (
-                  <div className="flex flex-col items-center justify-center py-12">
-                    <div className="w-16 h-16 border-4 border-green-200 border-t-green-600 rounded-full animate-spin mb-4"></div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Analyzing Your Website</h3>
-                    <p className="text-gray-600 text-center max-w-md">
-                      We're analyzing your website's SEO performance, page speed, and providing recommendations...
-                    </p>
-                  </div>
-                ) : seoData ? (
-                  <div className="prose prose-lg max-w-none">
-                    <ReactMarkdown
-                      components={{
-                        h1: ({ children }) => (
-                          <h1 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                            <BarChart3 className="w-6 h-6 text-green-600" />
-                            {children}
-                          </h1>
-                        ),
-                        h2: ({ children }) => (
-                          <h2 className="text-xl font-semibold text-gray-800 mb-3 mt-6 flex items-center gap-2">
-                            <Target className="w-5 h-5 text-blue-600" />
-                            {children}
-                          </h2>
-                        ),
-                        h3: ({ children }) => (
-                          <h3 className="text-lg font-medium text-gray-700 mb-2 mt-4 flex items-center gap-2">
-                            <Lightbulb className="w-4 h-4 text-amber-600" />
-                            {children}
-                          </h3>
-                        ),
-                        ul: ({ children }) => (
-                          <ul className="space-y-2 my-4">{children}</ul>
-                        ),
-                        li: ({ children }) => (
-                          <li className="flex items-start gap-2">
-                            <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                            <span>{children}</span>
-                          </li>
-                        ),
-                        p: ({ children }) => (
-                          <p className="text-gray-700 leading-relaxed mb-4">{children}</p>
-                        ),
-                        strong: ({ children }) => (
-                          <strong className="font-semibold text-gray-900">{children}</strong>
-                        ),
-                        em: ({ children }) => (
-                          <em className="italic text-gray-600">{children}</em>
-                        ),
-                        code: ({ children }) => (
-                          <code className="bg-gray-100 text-gray-800 px-2 py-1 rounded text-sm font-mono">{children}</code>
-                        ),
-                        pre: ({ children }) => (
-                          <pre className="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto text-sm">{children}</pre>
-                        ),
-                        blockquote: ({ children }) => (
-                          <blockquote className="border-l-4 border-green-500 pl-4 italic text-gray-600 bg-green-50 py-2 rounded-r-lg">
-                            {children}
-                          </blockquote>
-                        )
-                      }}
-                    >
-                      {seoData.content}
-                    </ReactMarkdown>
-                  </div>
-                ) : (
-                  <div className="text-center py-12">
-                    <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No Analysis Available</h3>
-                    <p className="text-gray-600 mb-4">
-                      Unable to generate SEO analysis. Please try again.
-                    </p>
-                    <Button
-                      onClick={fetchSEOAnalysis}
-                      className="bg-green-600 hover:bg-green-700 text-white"
-                    >
-                      <Search className="w-4 h-4 mr-2" />
-                      Retry Analysis
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Analysis Status */}
-            <Card className="bg-white shadow-lg border-0">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Clock className="w-5 h-5 text-blue-600" />
-                  Analysis Status
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Page Speed</span>
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <span className="text-sm font-medium text-green-600">Excellent</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">SEO Score</span>
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                      <span className="text-sm font-medium text-yellow-600">Good</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Mobile Friendly</span>
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <span className="text-sm font-medium text-green-600">Yes</span>
-                    </div>
-                  </div>
+                <div>
+                  <CardTitle className="text-xl text-gray-900">SEO Analysis Report</CardTitle>
+                  <p className="text-sm text-gray-600 mt-1">
+                    {isLoading ? 'Generating analysis...' : 'Complete website SEO analysis and recommendations'}
+                  </p>
                 </div>
-              </CardContent>
-            </Card>
-
-            {/* Key Metrics */}
-            <Card className="bg-white shadow-lg border-0">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-green-600" />
-                  Key Metrics
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="space-y-4">
-                  <div className="text-center p-3 bg-green-50 rounded-lg">
-                    <div className="text-2xl font-bold text-green-600">0.7s</div>
-                    <div className="text-sm text-green-700">First Contentful Paint</div>
-                  </div>
-                  <div className="text-center p-3 bg-blue-50 rounded-lg">
-                    <div className="text-2xl font-bold text-blue-600">1.5s</div>
-                    <div className="text-sm text-blue-700">Largest Contentful Paint</div>
-                  </div>
-                  <div className="text-center p-3 bg-purple-50 rounded-lg">
-                    <div className="text-2xl font-bold text-purple-600">0ms</div>
-                    <div className="text-sm text-purple-700">Total Blocking Time</div>
-                  </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-6">
+              {isLoading ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <div className="w-16 h-16 border-4 border-green-200 border-t-green-600 rounded-full animate-spin mb-4"></div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Analyzing Your Website</h3>
+                  <p className="text-gray-600 text-center max-w-md">
+                    We're analyzing your website's SEO performance, page speed, and providing recommendations...
+                  </p>
                 </div>
-              </CardContent>
-            </Card>
-
-            {/* Quick Actions */}
-            <Card className="bg-white shadow-lg border-0">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Target className="w-5 h-5 text-amber-600" />
-                  Quick Actions
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="space-y-3">
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start border-green-200 text-green-700 hover:bg-green-50"
-                    onClick={() => router.push('/chatbot/create')}
+              ) : seoData ? (
+                <div className="prose prose-lg max-w-none">
+                  <ReactMarkdown
+                    components={{
+                      h1: ({ children }) => (
+                        <h1 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                          <BarChart3 className="w-6 h-6 text-green-600" />
+                          {children}
+                        </h1>
+                      ),
+                      h2: ({ children }) => (
+                        <h2 className="text-xl font-semibold text-gray-800 mb-3 mt-6 flex items-center gap-2">
+                          <Target className="w-5 h-5 text-blue-600" />
+                          {children}
+                        </h2>
+                      ),
+                      h3: ({ children }) => (
+                        <h3 className="text-lg font-medium text-gray-700 mb-2 mt-4 flex items-center gap-2">
+                          <Lightbulb className="w-4 h-4 text-amber-600" />
+                          {children}
+                        </h3>
+                      ),
+                      ul: ({ children }) => (
+                        <ul className="space-y-2 my-4">{children}</ul>
+                      ),
+                      li: ({ children }) => (
+                        <li className="flex items-start gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                          <span>{children}</span>
+                        </li>
+                      ),
+                      p: ({ children }) => (
+                        <p className="text-gray-700 leading-relaxed mb-4">{children}</p>
+                      ),
+                      strong: ({ children }) => (
+                        <strong className="font-semibold text-gray-900">{children}</strong>
+                      ),
+                      em: ({ children }) => (
+                        <em className="italic text-gray-600">{children}</em>
+                      ),
+                      code: ({ children }) => (
+                        <code className="bg-gray-100 text-gray-800 px-2 py-1 rounded text-sm font-mono">{children}</code>
+                      ),
+                      pre: ({ children }) => (
+                        <pre className="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto text-sm">{children}</pre>
+                      ),
+                      blockquote: ({ children }) => (
+                        <blockquote className="border-l-4 border-green-500 pl-4 italic text-gray-600 bg-green-50 py-2 rounded-r-lg">
+                          {children}
+                        </blockquote>
+                      )
+                    }}
                   >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Create New Bot
-                  </Button>
+                    {seoData.content}
+                  </ReactMarkdown>
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">No Analysis Available</h3>
+                  <p className="text-gray-600 mb-4">
+                    Unable to generate SEO analysis. Please try again.
+                  </p>
                   <Button
-                    variant="outline"
-                    className="w-full justify-start border-blue-200 text-blue-700 hover:bg-blue-50"
-                    onClick={() => router.push('/dashboard')}
+                    onClick={fetchSEOAnalysis}
+                    className="bg-green-600 hover:bg-green-700 text-white"
                   >
-                    <BarChart3 className="w-4 h-4 mr-2" />
-                    View Dashboard
+                    <Search className="w-4 h-4 mr-2" />
+                    Retry Analysis
                   </Button>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

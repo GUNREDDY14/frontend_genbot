@@ -75,6 +75,48 @@ export function validatePassword(password: string) {
 }
 
 /**
+ * Check if a user already has a company_id assigned, or generate a new one if they don't
+ * @param email - The user's email address
+ * @returns Promise<string> - The company_id (either existing or newly generated)
+ */
+export async function getOrCreateCompanyId(email: string): Promise<string> {
+  try {
+    const response = await fetch('http://127.0.0.1:8000/auth/get_company_id', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email: email
+      })
+    });
+
+    if (response.ok) {
+      const companyData = await response.json();
+      // User exists and has a company_id, use the existing one
+      console.log('Using existing company_id:', companyData.company_id);
+      return companyData.company_id;
+    } else if (response.status === 404) {
+      // User doesn't exist, generate new company_id
+      const newCompanyId = generateUUID();
+      console.log('Generated new company_id:', newCompanyId);
+      return newCompanyId;
+    } else {
+      // Other error, generate new company_id as fallback
+      const fallbackCompanyId = generateUUID();
+      console.log('Error checking company_id, generated new one:', fallbackCompanyId);
+      return fallbackCompanyId;
+    }
+  } catch (error) {
+    // If the API call fails, generate new company_id as fallback
+    console.error('Error checking existing company_id:', error);
+    const fallbackCompanyId = generateUUID();
+    console.log('Fallback: generated new company_id:', fallbackCompanyId);
+    return fallbackCompanyId;
+  }
+}
+
+/**
  * Generate a proper UUID v4
  */
 export function generateUUID(): string {

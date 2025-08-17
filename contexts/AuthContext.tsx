@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { generateUUID } from '@/utils';
+import { generateUUID, getOrCreateCompanyId } from '@/utils';
 
 interface User {
   id: string;
@@ -44,8 +44,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Generate company ID for this user
-      const userCompanyId = generateUUID();
+      // Get or create company_id for this user
+      const userCompanyId = await getOrCreateCompanyId(email);
+      
       setCompanyId(userCompanyId);
       localStorage.setItem('genbot_company_id', userCompanyId);
       
@@ -73,8 +74,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const payload = JSON.parse(atob(idToken.split('.')[1]));
       const email = payload.email;
       
-      // Generate company ID for this user
-      const userCompanyId = generateUUID();
+      // Get or create company_id for this user
+      const userCompanyId = await getOrCreateCompanyId(email);
+      
       setCompanyId(userCompanyId);
       localStorage.setItem('genbot_company_id', userCompanyId);
       

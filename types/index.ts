@@ -61,7 +61,7 @@ export interface ScrapingJob {
   id: string;
   url: string;
   status: 'pending' | 'running' | 'completed' | 'failed';
-  companyId: string;
+  chatbotId: string;
   startedAt?: Date;
   completedAt?: Date;
   error?: string;

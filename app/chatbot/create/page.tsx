@@ -187,13 +187,13 @@ export default function CreateChatbotPage() {
     setScrapingStarted(true);
     
     try {
-      // Use the existing company_id from state
+      // Use the existing chatbot_id from state
       const url = userUrl || "https://example.com/";
       const file_path = validFilePaths.length > 0 ? validFilePaths[0] : "";
 
       console.log('Starting scraping request with payload:', {
             url: url,
-        company_id: companyId,
+        chatbot_id: chatbotId,
         file_path: file_path
       });
 
@@ -204,7 +204,7 @@ export default function CreateChatbotPage() {
           },
           body: JSON.stringify({
           url: url,
-          company_id: companyId,
+          chatbot_id: chatbotId,
           file_path: file_path
         })
       });

@@ -11,7 +11,7 @@ interface DashboardProps {
 }
 
 export default function Dashboard({ title, description, children }: DashboardProps) {
-  const { user, logout } = useAuth();
+  const { user, logout, companyId } = useAuth();
   const router = useRouter();
 
   const handleLogout = () => {
@@ -47,6 +47,12 @@ export default function Dashboard({ title, description, children }: DashboardPro
               </div>
             </div>
             <div className="flex items-center space-x-2 sm:space-x-4">
+              {/* Company ID Display */}
+              {companyId && (
+                <span className="hidden sm:block text-xs text-slate-600 bg-gradient-to-r from-blue-50 to-indigo-50 px-3 py-1.5 rounded-full border border-blue-200/50">
+                  <span className="font-medium text-blue-700">ID:</span> {companyId}
+                </span>
+              )}
               <span className="hidden sm:block text-sm text-slate-600 bg-gradient-to-r from-emerald-50 to-teal-50 px-3 py-1.5 rounded-full border border-emerald-200/50">
                 Welcome, <span className="font-medium text-emerald-700">{user?.name || 'User'}</span>
               </span>
@@ -74,6 +80,13 @@ export default function Dashboard({ title, description, children }: DashboardPro
             {title}
           </h1>
           <p className="text-slate-600 text-sm sm:text-base font-medium">{description}</p>
+          
+          {/* Company ID in main content area */}
+          {companyId && (
+            <div className="mt-3 inline-flex items-center gap-2 text-xs text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full">
+              <span className="font-medium">Company ID:</span> {companyId}
+            </div>
+          )}
         </div>
 
         {children}

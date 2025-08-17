@@ -27,17 +27,16 @@ interface ChatbotFormData {
 
 export default function CreateChatbotPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, companyId } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [scrapingStatus, setScrapingStatus] = useState<'idle' | 'processing' | 'completed' | 'failed'>('idle');
   const [scrapingStarted, setScrapingStarted] = useState(false);
-  const [companyId, setCompanyId] = useState<string>('');
   const [chatbotId, setChatbotId] = useState<string>('');
   const [showChatScreen, setShowChatScreen] = useState(false);
   const [botData, setBotData] = useState<any>(null);
-  const [chatMessages, setChatMessages] = useState<Array<{id: string, text: string, isUser: boolean, timestamp: Date, followUpQuestions?: string[]}>>([]);
+  const [chatMessages, setChatMessages] = useState<Array<{id: string, text: string, isUser: boolean, timestamp: Date, followUpQuestions?: string[], isLoading?: boolean}>>([]);
   const [threadId, setThreadId] = useState<string>('');
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
@@ -76,8 +75,6 @@ export default function CreateChatbotPage() {
       urls: newUrls
     }));
   };
-
-
 
   // File upload states and handlers
   const [isDragOver, setIsDragOver] = useState(false);
@@ -144,7 +141,7 @@ export default function CreateChatbotPage() {
     }
   };
 
-  // Generate random UUID for company_id and chatbot_id
+  // Generate random UUID for chatbot_id and thread_id
   const generateUUID = () => {
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
       const r = Math.random() * 16 | 0;
@@ -155,7 +152,6 @@ export default function CreateChatbotPage() {
 
   // Initialize UUIDs on component mount
   React.useEffect(() => {
-    if (!companyId) setCompanyId(generateUUID());
     if (!chatbotId) setChatbotId(generateUUID());
     if (!threadId) setThreadId(generateUUID());
   }, []);
@@ -165,12 +161,29 @@ export default function CreateChatbotPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
 
-
-
-
+  // Check if companyId is available
+  React.useEffect(() => {
+    if (!companyId) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to create a chatbot.",
+        variant: "destructive"
+      });
+      router.push('/auth/signin');
+    }
+  }, [companyId, router, toast]);
 
   // Background scraping function
   const startBackgroundScraping = async () => {
+    if (!companyId) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to create a chatbot.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     const userUrl = formData.urls[0]?.trim();
     const validFilePaths = formData.filePaths;
 
@@ -284,6 +297,15 @@ export default function CreateChatbotPage() {
 
   // Function to send basic info to backend
   const sendBasicInfo = async () => {
+    if (!companyId) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to create a chatbot.",
+        variant: "destructive"
+      });
+      return false;
+    }
+
     if (!formData.name.trim()) {
       toast({
         title: "Validation Error",
@@ -343,6 +365,15 @@ export default function CreateChatbotPage() {
 
   // Function to send appearance info to backend
   const sendAppearanceInfo = async () => {
+    if (!companyId) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to create a chatbot.",
+        variant: "destructive"
+      });
+      return false;
+    }
+
     try {
       const payload = {
         company_id: companyId,
@@ -391,6 +422,15 @@ export default function CreateChatbotPage() {
 
   // Function to handle opening the bot chat screen
   const handleOpenBot = async () => {
+    if (!companyId) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to create a chatbot.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsLoading(true);
     
     try {
@@ -1296,6 +1336,28 @@ export default function CreateChatbotPage() {
               </div>
             </div>
           </div>
+
+          {/* Loading State Example */}
+          <div className="flex gap-3 animate-slideInLeft" style={{ animationDelay: '2s' }}>
+            <div 
+              className="w-8 h-8 rounded-full flex items-center justify-center shadow-md" 
+              style={{backgroundColor: formData.primaryColor}}
+            >
+              <Bot className="w-4 h-4 text-white" />
+            </div>
+            <div className="flex-1">
+              <div className="bg-white border border-gray-200 rounded-2xl rounded-tl-md p-4 shadow-sm">
+                <div className="flex items-center space-x-2">
+                  <div className="flex space-x-1">
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                  </div>
+                  <span className="text-sm text-gray-500 ml-2">AI is thinking...</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
         
         {/* Chat Input */}
@@ -1337,7 +1399,7 @@ export default function CreateChatbotPage() {
 
   // Function to send a message in chat
   const sendChatMessage = async (message: string) => {
-    if (!message.trim() || !botData || isSendingMessage) return;
+    if (!message.trim() || !botData || isSendingMessage || !companyId) return;
 
     setIsSendingMessage(true);
 
@@ -1350,6 +1412,17 @@ export default function CreateChatbotPage() {
     };
 
     setChatMessages(prev => [...prev, userMessage]);
+
+    // Add a temporary loading message that will be replaced
+    const loadingMessageId = generateUUID();
+    const loadingMessage = {
+      id: loadingMessageId,
+      text: '',
+      isUser: false,
+      timestamp: new Date(),
+      isLoading: true
+    };
+    setChatMessages(prev => [...prev, loadingMessage]);
 
     try {
       const payload = {
@@ -1396,6 +1469,9 @@ export default function CreateChatbotPage() {
         parsedContent["Follow-up Question3"]
       ].filter(q => q && q.trim()); // Filter out empty questions
 
+      // Remove the loading message and add the actual response
+      setChatMessages(prev => prev.filter(msg => msg.id !== loadingMessageId));
+
       // Add bot response with follow-up questions
       const botResponse = {
         id: generateUUID(),
@@ -1410,6 +1486,9 @@ export default function CreateChatbotPage() {
     } catch (error) {
       const errorObj = error as Error;
       console.error('Error sending chat message:', errorObj);
+      
+      // Remove the loading message
+      setChatMessages(prev => prev.filter(msg => msg.id !== loadingMessageId));
       
       // Add error message
       const errorResponse = {
@@ -1432,6 +1511,15 @@ export default function CreateChatbotPage() {
 
   // Function to generate iframe by fetching bot data from API
   const handleGenerateIframe = async () => {
+    if (!companyId) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to create a chatbot.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsLoading(true);
     
     try {
@@ -1861,9 +1949,20 @@ export default function CreateChatbotPage() {
   };
 
   const sendVoiceMessage = async (audioBlob: Blob) => {
-    if (!botData || isProcessingVoice) return;
+    if (!botData || isProcessingVoice || !companyId) return;
 
     setIsProcessingVoice(true);
+
+    // Add a temporary loading message for voice processing
+    const loadingMessageId = generateUUID();
+    const loadingMessage = {
+      id: loadingMessageId,
+      text: '',
+      isUser: false,
+      timestamp: new Date(),
+      isLoading: true
+    };
+    setChatMessages(prev => [...prev, loadingMessage]);
 
     try {
       const formData = new FormData();
@@ -1888,6 +1987,9 @@ export default function CreateChatbotPage() {
 
       const result = await response.json();
       console.log('Voice API response:', result);
+
+      // Remove the loading message
+      setChatMessages(prev => prev.filter(msg => msg.id !== loadingMessageId));
 
       // Add user message (transcribed text)
       const userMessage = {
@@ -1939,6 +2041,9 @@ export default function CreateChatbotPage() {
     } catch (error) {
       const errorObj = error as Error;
       console.error('Error processing voice message:', errorObj);
+      
+      // Remove the loading message
+      setChatMessages(prev => prev.filter(msg => msg.id !== loadingMessageId));
       
       toast({
         title: "Voice Processing Failed",
@@ -2123,21 +2228,35 @@ export default function CreateChatbotPage() {
                       </div>
                     )}
                     <div className={`max-w-xs lg:max-w-md xl:max-w-lg ${message.isUser ? 'order-1' : 'order-2'}`}>
-                      <div 
-                        className={`px-4 py-3 rounded-2xl shadow-sm ${
-                          message.isUser 
-                            ? 'text-white rounded-tr-md' 
-                            : 'bg-white border border-gray-200 rounded-tl-md'
-                        }`}
-                        style={{ 
-                          backgroundColor: message.isUser ? botData.appearance.color_code : undefined 
-                        }}
-                      >
-                        <p className="text-sm leading-relaxed">{message.text}</p>
-                      </div>
+                      {message.isLoading ? (
+                        // Loading state with animated typing indicator
+                        <div className="bg-white border border-gray-200 rounded-2xl rounded-tl-md p-4 shadow-sm">
+                          <div className="flex items-center space-x-2">
+                            <div className="flex space-x-1">
+                              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                            </div>
+                            <span className="text-sm text-gray-500 ml-2">AI is thinking...</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div 
+                          className={`px-4 py-3 rounded-2xl shadow-sm ${
+                            message.isUser 
+                              ? 'text-white rounded-tr-md' 
+                              : 'bg-white border border-gray-200 rounded-tl-md'
+                          }`}
+                          style={{ 
+                            backgroundColor: message.isUser ? botData.appearance.color_code : undefined 
+                          }}
+                        >
+                          <p className="text-sm leading-relaxed">{message.text}</p>
+                        </div>
+                      )}
                       
                       {/* Follow-up Questions */}
-                      {!message.isUser && message.followUpQuestions && message.followUpQuestions.length > 0 && (
+                      {!message.isUser && !message.isLoading && message.followUpQuestions && message.followUpQuestions.length > 0 && (
                         <div className="mt-3 space-y-2">
                           <p className="text-xs text-gray-600 font-medium">You might also ask:</p>
                           {message.followUpQuestions.map((question, index) => (
@@ -2169,7 +2288,7 @@ export default function CreateChatbotPage() {
               <div className="flex gap-3">
                 <input
                   type="text"
-                  placeholder={isSendingMessage ? "Sending..." : botData.basic_info.input_placeholder}
+                  placeholder={isSendingMessage ? "AI is thinking..." : botData.basic_info.input_placeholder}
                   disabled={isSendingMessage}
                   className="flex-1 px-4 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                   onKeyPress={(e) => {
@@ -2201,7 +2320,10 @@ export default function CreateChatbotPage() {
                   style={{ backgroundColor: botData.appearance.color_code }}
                 >
                   {isSendingMessage ? (
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>Thinking...</span>
+                    </div>
                   ) : (
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
@@ -2209,6 +2331,18 @@ export default function CreateChatbotPage() {
                   )}
                 </Button>
               </div>
+              
+              {/* Loading indicator below input */}
+              {isSendingMessage && (
+                <div className="mt-3 flex items-center justify-center space-x-2 text-sm text-gray-500">
+                  <div className="flex space-x-1">
+                    <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                    <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                  </div>
+                  <span>AI is processing your message...</span>
+                </div>
+              )}
             </div>
           </div>
         </div>

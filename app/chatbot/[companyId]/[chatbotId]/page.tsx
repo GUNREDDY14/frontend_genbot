@@ -27,6 +27,7 @@ interface Message {
   timestamp: Date;
   followUpQuestions?: string[];
   isDetailedResponse?: boolean;
+  isLoading?: boolean;
 }
 
 interface ChatbotConfig {
@@ -159,6 +160,18 @@ const ChatbotCore = ({
     setMessages((prev) => [...prev, userMessage]);
     if (messageContent === inputMessage) setInputMessage("");
     setIsSending(true);
+
+    // Add a temporary loading message
+    const loadingMessageId = uuidv4();
+    const loadingMessage: Message = {
+      id: loadingMessageId,
+      content: '',
+      role: "assistant",
+      timestamp: new Date(),
+      isLoading: true
+    };
+    setMessages((prev) => [...prev, loadingMessage]);
+
     try {
       const response = await fetch(
         "https://bot.aipromptora.com/AgentAPI/Agents",
@@ -210,6 +223,9 @@ const ChatbotCore = ({
         );
       }
 
+      // Remove the loading message
+      setMessages((prev) => prev.filter(msg => msg.id !== loadingMessageId));
+
       const assistantMessage: Message = {
         id: uuidv4(),
         content: finalContent,
@@ -228,6 +244,10 @@ const ChatbotCore = ({
     } catch (err) {
       console.error("Error sending message:", err);
       trackInteraction("chat_error");
+      
+      // Remove the loading message
+      setMessages((prev) => prev.filter(msg => msg.id !== loadingMessageId));
+      
       setMessages((prev) => [
         ...prev,
         {
@@ -365,50 +385,64 @@ const ChatbotCore = ({
                 )}
 
                 <div className={`flex flex-col max-w-[85%]`}>
-                  <div
-                    className={`relative p-3 md:p-4 shadow-md ${
-                      isUser
-                        ? "bg-primary text-white rounded-t-2xl rounded-bl-2xl"
-                        : "bg-white text-gray-900 rounded-t-2xl rounded-br-2xl"
-                    }`}
-                    style={{
-                      backgroundColor: isUser
-                        ? appearance.primaryColor
-                        : undefined,
-                    }}
-                  >
-                    <div className={showDetailedButtonOnThisMessage ? "pb-10" : ""}>
-                      {Array.isArray(message.content)
-                        ? message.content.map((line, idx) => (
-                            <p
-                              key={idx}
-                              className="mb-1 last:mb-0"
-                              dangerouslySetInnerHTML={renderWithLinks(line)}
-                            />
-                          ))
-                        : String(message.content)
-                            .split("\n")
-                            .map((line, idx) => (
+                  {message.isLoading ? (
+                    // Loading state with animated typing indicator
+                    <div className="relative p-3 md:p-4 shadow-md bg-white text-gray-900 rounded-t-2xl rounded-br-2xl">
+                      <div className="flex items-center space-x-2">
+                        <div className="flex space-x-1">
+                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                        </div>
+                        <span className="text-sm text-gray-500 ml-2">AI is thinking...</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      className={`relative p-3 md:p-4 shadow-md ${
+                        isUser
+                          ? "bg-primary text-white rounded-t-2xl rounded-bl-2xl"
+                          : "bg-white text-gray-900 rounded-t-2xl rounded-br-2xl"
+                      }`}
+                      style={{
+                        backgroundColor: isUser
+                          ? appearance.primaryColor
+                          : undefined,
+                      }}
+                    >
+                      <div className={showDetailedButtonOnThisMessage ? "pb-10" : ""}>
+                        {Array.isArray(message.content)
+                          ? message.content.map((line, idx) => (
                               <p
                                 key={idx}
                                 className="mb-1 last:mb-0"
                                 dangerouslySetInnerHTML={renderWithLinks(line)}
                               />
-                            ))}
-                    </div>
+                            ))
+                          : String(message.content)
+                              .split("\n")
+                              .map((line, idx) => (
+                                <p
+                                  key={idx}
+                                  className="mb-1 last:mb-0"
+                                  dangerouslySetInnerHTML={renderWithLinks(line)}
+                                />
+                              ))}
+                      </div>
 
-                    {showDetailedButtonOnThisMessage && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleDetailedResponseClick}
-                        className="absolute bottom-2 right-2 h-auto py-1 px-2.5 text-xs bg-white/80 backdrop-blur-sm shadow-sm cursor-pointer text-primary border border-gray-200 hover:border-primary/70 hover:shadow-md hover:-translate-y-px active:scale-[0.98] active:shadow-sm transition-all"
-                      >
-                        <Sparkles className="w-3 h-3 mr-1.5 flex-shrink-0" />
-                        See Detailed Response
-                      </Button>
-                    )}
-                  </div>
+                      {showDetailedButtonOnThisMessage && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleDetailedResponseClick}
+                          className="absolute bottom-2 right-2 h-auto py-1 px-2.5 text-xs bg-white/80 backdrop-blur-sm shadow-sm cursor-pointer text-primary border border-gray-200 hover:border-primary/70 hover:shadow-md hover:-translate-y-px active:scale-[0.98] active:shadow-sm transition-all"
+                        >
+                          <Sparkles className="w-3 h-3 mr-1.5 flex-shrink-0" />
+                          See Detailed Response
+                        </Button>
+                      )}
+                    </div>
+                  )}
 
                   {appearance.showTimestamp && (
                     <div
@@ -433,7 +467,7 @@ const ChatbotCore = ({
           })}
           
           {messages[lastAssistantMessageIndex]?.followUpQuestions &&
-            !isSending && (
+            !isSending && !messages[lastAssistantMessageIndex]?.isLoading && (
               <div className="flex flex-col items-start gap-2 mt-2 animate-fadeIn pl-11">
                 <p className="text-sm font-medium text-muted-foreground mb-1">
                   Suggested questions:
@@ -500,7 +534,7 @@ const ChatbotCore = ({
                   ? "bg-white/10 text-white placeholder:text-white/60 border-white/20 focus:border-white/50"
                   : "bg-background border-border focus:border-primary"
               }`}
-              placeholder={appearance.placeholderText}
+              placeholder={isSending ? "AI is thinking..." : appearance.placeholderText}
             />
             <Button
               size="icon"
@@ -509,7 +543,11 @@ const ChatbotCore = ({
               className="absolute right-2 top-1/2 transform -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full hover:opacity-90 hover:scale-110 transition-all duration-200"
               style={{ backgroundColor: appearance.primaryColor }}
             >
-              <Send size={20} className="text-white" />
+              {isSending ? (
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                <Send size={20} className="text-white" />
+              )}
             </Button>
           </div>
         </div>

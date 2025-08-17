@@ -11,25 +11,23 @@ import { useAuth } from '@/contexts/AuthContext';
 import { GoogleSignInConfig, GoogleButtonOptions, GoogleCredentialResponse } from '@/types/google-auth';
 
 export default function SignUpPage() {
-  const [step, setStep] = useState<'email' | 'register'>('email');
+  const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
-    name: '',
     email: '',
     password: '',
     confirmPassword: '',
+    firstName: '',
+    lastName: '',
+    companyName: '',
+    acceptTerms: false
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
-  const [userId, setUserId] = useState<string>('');
-  
   const router = useRouter();
   const searchParams = useSearchParams();
-  const verified = searchParams.get('verified');
-  const verifiedUserId = searchParams.get('userId');
-  const verifiedEmail = searchParams.get('email');
-  const { googleLogin } = useAuth();
+  const { login, googleLogin, companyId } = useAuth();
+  const message = searchParams.get('message');
 
   const handleCredentialResponse = useCallback(async (response: GoogleCredentialResponse) => {
     const idToken = response.credential;
@@ -62,7 +60,7 @@ export default function SignUpPage() {
         auto_prompt: false,
       });
 
-      // Render the Google Sign-In button
+      // Render the Google Sign-In button with larger size
       const googleButtonElement = document.getElementById('google-signin-button');
       if (googleButtonElement) {
         window.google.accounts.id.renderButton(googleButtonElement, {
@@ -95,390 +93,287 @@ export default function SignUpPage() {
     };
   }, [initializeGoogleSignIn]);
 
-  useEffect(() => {
-    // If coming from OTP verification, move to registration step
-    if (verified === 'true' && verifiedUserId && verifiedEmail) {
-      setStep('register');
-      setUserId(verifiedUserId);
-      setFormData(prev => ({ ...prev, email: verifiedEmail }));
-      setSuccess('Email verified successfully! You can now complete your registration.');
-    }
-  }, [verified, verifiedUserId, verifiedEmail]);
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-
-    // Validate password in real-time
-    if (name === 'password') {
-      const validation = validatePassword(value);
-      setPasswordErrors(validation.errors);
-    }
-  };
-
-  const handleSendOTP = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError('');
-    setSuccess('');
-
-    if (!formData.email) {
-      setError('Please enter your email address');
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      const response = await fetch('/api/auth/send-otp', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: formData.email,
-          type: 'registration',
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setError(data.error || 'Failed to send OTP');
-        return;
-      }
-
-      setUserId(data.userId);
-      setSuccess('OTP sent successfully! Please check your email.');
-      
-      // Redirect to OTP verification page
-      router.push(`${URLS.VERIFY_OTP}?email=${encodeURIComponent(formData.email)}&userId=${data.userId}&type=registration`);
-    } catch (error) {
-      console.error('Send OTP error:', error);
-      setError('Failed to send OTP. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
+  const handleInputChange = (field: keyof typeof formData, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validation
+    if (!formData.email || !formData.password || !formData.confirmPassword || !formData.firstName || !formData.lastName || !formData.companyName) {
+      setError('Please fill in all required fields');
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
+    if (!validatePassword(formData.password)) {
+      setError('Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character');
+      return;
+    }
+
+    if (!formData.acceptTerms) {
+      setError('Please accept the terms and conditions');
+      return;
+    }
+
     setIsLoading(true);
     setError('');
     setSuccess('');
 
-    // Validate passwords match
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      setIsLoading(false);
-      return;
-    }
-
-    // Validate password strength
-    const validation = validatePassword(formData.password);
-    if (!validation.isValid) {
-      setError('Password does not meet requirements');
-      setIsLoading(false);
-      return;
-    }
-
     try {
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          password: formData.password,
-          userId: userId,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setError(data.error || 'Registration failed');
-        return;
-      }
-
-      setSuccess('Registration successful! Signing you in...');
-
-      // Automatically sign in the user
-      // This part is now handled by the useAuth context's googleLogin
-      // const signInResult = await signIn('credentials', {
-      //   email: formData.email,
-      //   password: formData.password,
-      //   redirect: false,
-      // });
-
-      // if (signInResult?.error) {
-      //   setError('Registration successful but automatic sign-in failed. Please sign in manually.');
-      //   router.push(URLS.SIGNIN);
-      // } else {
-        // Redirect to dashboard
+      setSuccess('Creating your account...');
+      await login(formData.email, formData.password);
+      setSuccess('Account created successfully! Redirecting to dashboard...');
+      
+      // Redirect to dashboard after a short delay
+      setTimeout(() => {
         router.push(URLS.DASHBOARD);
-      // }
+      }, 1000);
     } catch (error) {
-      console.error('Registration error:', error);
-      setError('Registration failed. Please try again.');
+      console.error('Sign-up error:', error);
+      setError('Failed to create account. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleOAuthSignIn = async (provider: 'google' | 'github') => {
-    try {
-      // This function is now handled by the useAuth context's googleLogin
-      // await signIn(provider, { callbackUrl: URLS.DASHBOARD });
-      setError(`OAuth sign-in for ${provider} is not directly supported on this page. Please use the Google Sign-In button.`);
-    } catch (error) {
-      console.error(`${provider} sign in error:`, error);
-      setError(`${provider} sign in failed. Please try again.`);
-    }
-  };
-
-  if (step === 'email') {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full space-y-8">
-          <div>
-            <div className="mx-auto h-12 w-12 flex items-center justify-center rounded-full bg-primary">
-              <span className="text-primary-foreground font-bold text-xl">G</span>
-            </div>
-            <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-foreground">
-              Create your account
-            </h2>
-            <p className="mt-2 text-center text-sm text-muted-foreground">
-              Or{' '}
-              <Link href={URLS.SIGNIN} className="font-medium text-primary hover:text-primary/80">
-                sign in to your account
-              </Link>
-            </p>
-          </div>
-
-          {error && (
-            <div className="rounded-md bg-red-50 p-4 border border-red-200">
-              <div className="text-sm text-red-800">{error}</div>
-            </div>
-          )}
-
-          {success && (
-            <div className="rounded-md bg-green-50 p-4 border border-green-200">
-              <div className="text-sm text-green-800">{success}</div>
-            </div>
-          )}
-
-          <form className="mt-8 space-y-6" onSubmit={handleSendOTP}>
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-foreground">
-                Email address
-              </label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={formData.email}
-                onChange={handleInputChange}
-                placeholder="Enter your email"
-                disabled={isLoading}
-                className="mt-1"
-              />
-            </div>
-
-            <div>
-              <Button
-                type="submit"
-                disabled={isLoading}
-                className="w-full"
-              >
-                {isLoading ? (
-                  <div className="flex items-center space-x-2">
-                    <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin"></div>
-                    <span>Sending OTP...</span>
-                  </div>
-                ) : (
-                  'Send OTP'
-                )}
-              </Button>
-            </div>
-
-            {/* Google Sign-In Button */}
-            <div id="google-signin-button" className="w-full"></div>
-
-            {/* GitHub Sign-In Button */}
-            {/* <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-border" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-background text-muted-foreground">Or continue with</span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              {providers.google && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => handleOAuthSignIn('google')}
-                  className="w-full"
-                >
-                  Google
-                </Button>
-              )}
-              {providers.github && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => handleOAuthSignIn('github')}
-                  className="w-full"
-                >
-                  GitHub
-                </Button>
-              )}
-            </div> */}
-          </form>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center p-4">
       <div className="max-w-md w-full space-y-8">
-        <div>
-          <div className="mx-auto h-12 w-12 flex items-center justify-center rounded-full bg-primary">
-            <span className="text-primary-foreground font-bold text-xl">G</span>
+        {/* Header */}
+        <div className="text-center">
+          <div className="mx-auto h-16 w-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
+            <span className="text-2xl font-bold text-white">S</span>
           </div>
-          <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-foreground">
-            Complete your registration
+          <h2 className="mt-6 text-3xl font-bold text-gray-900">
+            Create your {APP_NAME} account
           </h2>
-          <p className="mt-2 text-center text-sm text-muted-foreground">
-            Or{' '}
-            <Link href={URLS.SIGNIN} className="font-medium text-primary hover:text-primary/80">
-              sign in to your account
-            </Link>
+          <p className="mt-2 text-sm text-gray-600">
+            Join thousands of users building AI-powered solutions
           </p>
-        </div>
-
-        {error && (
-          <div className="rounded-md bg-red-50 p-4 border border-red-200">
-            <div className="text-sm text-red-800">{error}</div>
-          </div>
-        )}
-
-        {success && (
-          <div className="rounded-md bg-green-50 p-4 border border-green-200">
-            <div className="text-sm text-green-800">{success}</div>
-          </div>
-        )}
-
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium text-foreground">
-                Full name
-              </label>
-              <Input
-                id="name"
-                name="name"
-                type="text"
-                autoComplete="name"
-                required
-                value={formData.name}
-                onChange={handleInputChange}
-                placeholder="Enter your full name"
-                disabled={isLoading}
-                className="mt-1"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-foreground">
-                Email address
-              </label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={formData.email}
-                onChange={handleInputChange}
-                placeholder="Enter your email"
-                disabled={isLoading}
-                className="mt-1"
-                readOnly
-              />
-              <p className="mt-1 text-xs text-muted-foreground">
-                Email verified ✓
+          
+          {/* Company ID Display */}
+          {companyId && (
+            <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-xs text-blue-700">
+                <span className="font-medium">Company ID:</span> {companyId}
+              </p>
+              <p className="text-xs text-blue-600 mt-1">
+                This ID will be used consistently across all features
               </p>
             </div>
+          )}
+        </div>
+
+        {/* Google Sign-In Button */}
+        <div className="mb-6">
+          <div 
+            id="google-signin-button" 
+            className="w-full flex justify-center"
+            style={{
+              transform: 'scale(1.2)',
+              transformOrigin: 'center',
+              margin: '20px 0'
+            }}
+          ></div>
+        </div>
+
+        {/* Divider */}
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-300" />
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-2 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 text-gray-500">
+              Or create account with email
+            </span>
+          </div>
+        </div>
+
+        {/* Sign-up Form */}
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
+                  First Name *
+                </label>
+                <input
+                  id="firstName"
+                  name="firstName"
+                  type="text"
+                  autoComplete="given-name"
+                  required
+                  value={formData.firstName}
+                  onChange={(e) => handleInputChange('firstName', e.target.value)}
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  placeholder="First name"
+                />
+              </div>
+              <div>
+                <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
+                  Last Name *
+                </label>
+                <input
+                  id="lastName"
+                  name="lastName"
+                  type="text"
+                  autoComplete="family-name"
+                  required
+                  value={formData.lastName}
+                  onChange={(e) => handleInputChange('lastName', e.target.value)}
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  placeholder="Last name"
+                />
+              </div>
+            </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-foreground">
-                Password
+              <label htmlFor="companyName" className="block text-sm font-medium text-gray-700">
+                Company Name *
               </label>
-              <Input
+              <input
+                id="companyName"
+                name="companyName"
+                type="text"
+                autoComplete="organization"
+                required
+                value={formData.companyName}
+                onChange={(e) => handleInputChange('companyName', e.target.value)}
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                placeholder="Your company name"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                Email address *
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                value={formData.email}
+                onChange={(e) => handleInputChange('email', e.target.value)}
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                placeholder="Enter your email"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                Password *
+              </label>
+              <input
                 id="password"
                 name="password"
                 type="password"
                 autoComplete="new-password"
                 required
                 value={formData.password}
-                onChange={handleInputChange}
-                placeholder="Enter your password"
-                disabled={isLoading}
-                className="mt-1"
+                onChange={(e) => handleInputChange('password', e.target.value)}
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                placeholder="Create a strong password"
               />
-              {passwordErrors.length > 0 && (
-                <div className="mt-1 text-xs text-red-600">
-                  <ul className="list-disc list-inside">
-                    {passwordErrors.map((error, index) => (
-                      <li key={index}>{error}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
             </div>
 
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-foreground">
-                Confirm password
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+                Confirm Password *
               </label>
-              <Input
+              <input
                 id="confirmPassword"
                 name="confirmPassword"
                 type="password"
                 autoComplete="new-password"
                 required
                 value={formData.confirmPassword}
-                onChange={handleInputChange}
+                onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 placeholder="Confirm your password"
-                disabled={isLoading}
-                className="mt-1"
               />
+            </div>
+
+            <div className="flex items-center">
+              <input
+                id="acceptTerms"
+                name="acceptTerms"
+                type="checkbox"
+                required
+                checked={formData.acceptTerms}
+                onChange={(e) => handleInputChange('acceptTerms', e.target.checked)}
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <label htmlFor="acceptTerms" className="ml-2 block text-sm text-gray-700">
+                I agree to the{' '}
+                <a href="#" className="text-blue-600 hover:text-blue-500">
+                  Terms and Conditions
+                </a>{' '}
+                and{' '}
+                <a href="#" className="text-blue-600 hover:text-blue-500">
+                  Privacy Policy
+                </a>
+              </label>
             </div>
           </div>
 
+          {/* Error and Success Messages */}
+          {error && (
+            <div className="rounded-md bg-red-50 p-4">
+              <div className="flex">
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-red-800">{error}</h3>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {success && (
+            <div className="rounded-md bg-green-50 p-4">
+              <div className="flex">
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-green-800">{success}</h3>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Submit Button */}
           <div>
-            <Button
+            <button
               type="submit"
               disabled={isLoading}
-              className="w-full"
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
             >
               {isLoading ? (
-                <div className="flex items-center space-x-2">
-                  <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin"></div>
-                  <span>Creating account...</span>
+                <div className="flex items-center">
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                  Creating account...
                 </div>
               ) : (
-                'Create account'
+                'Create Account'
               )}
-            </Button>
+            </button>
+          </div>
+
+          {/* Sign in link */}
+          <div className="text-center">
+            <p className="text-sm text-gray-600">
+              Already have an account?{' '}
+              <Link href={URLS.SIGNIN} className="font-medium text-blue-600 hover:text-blue-500 transition-colors duration-200">
+                Sign in here
+              </Link>
+            </p>
           </div>
         </form>
       </div>

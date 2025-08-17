@@ -12,15 +12,14 @@ import { GoogleSignInConfig, GoogleButtonOptions, GoogleCredentialResponse } fro
 export default function SignInPage() {
   const [formData, setFormData] = useState({
     email: '',
-    password: '',
+    password: ''
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login, googleLogin } = useAuth();
-
+  const { login, googleLogin, companyId } = useAuth();
   const message = searchParams.get('message');
 
   const handleCredentialResponse = useCallback(async (response: GoogleCredentialResponse) => {
@@ -87,241 +86,173 @@ export default function SignInPage() {
     };
   }, [initializeGoogleSignIn]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.email || !formData.password) {
+      setError('Please fill in all fields');
+      return;
+    }
+
     setIsLoading(true);
     setError('');
     setSuccess('');
 
     try {
-      // Show "Logging In..." message
-      setSuccess('Logging In...');
-      
-      // Simulate a brief delay to show the "Logging In..." message
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      // Use the AuthContext login function
+      setSuccess('Signing in...');
       await login(formData.email, formData.password);
-
-      // Show success message
-      setSuccess('Login successful! Redirecting to dashboard...');
+      setSuccess('Sign-in successful! Redirecting to dashboard...');
       
       // Redirect to dashboard after a short delay
       setTimeout(() => {
         router.push(URLS.DASHBOARD);
       }, 1000);
-
     } catch (error) {
-      console.error('Sign in error:', error);
-      setError('An unexpected error occurred. Please try again.');
+      console.error('Sign-in error:', error);
+      setError('Sign-in failed. Please check your credentials and try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
-      {/* Background with gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50"></div>
-      
-      {/* Decorative elements */}
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -left-40 w-80 h-80 bg-blue-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse"></div>
-        <div className="absolute -bottom-40 -right-40 w-80 h-80 bg-purple-200 rounded-full mix-blend-multiply filter blur-xl opacity-700 animate-pulse delay-1000"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-200 rounded-full mix-blend-multiply filter blur-xl opacity-50 animate-pulse delay-500"></div>
-      </div>
-
-      <div className="relative z-10 max-w-md w-full mx-4">
-        {/* Main card */}
-        <div className="bg-card/80 backdrop-blur-lg rounded-2xl shadow-2xl border border-border/50 p-8">
-          <div className="text-center mb-8">
-            {/* Logo */}
-            <div className="mx-auto h-16 w-16 flex items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg mb-6">
-              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-            </div>
-            
-            <h2 className="text-3xl font-bold text-foreground mb-2">
-              Welcome back
-            </h2>
-            <p className="text-muted-foreground">
-              Sign in to your {APP_NAME} account
-            </p>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center p-4">
+      <div className="max-w-md w-full space-y-8">
+        {/* Header */}
+        <div className="text-center">
+          <div className="mx-auto h-16 w-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
+            <span className="text-2xl font-bold text-white">S</span>
           </div>
-
-          {message && (
-            <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-4 mb-6">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm font-medium text-emerald-800">{message}</p>
-                </div>
-              </div>
+          <h2 className="mt-6 text-3xl font-bold text-gray-900">
+            Welcome back to {APP_NAME}
+          </h2>
+          <p className="mt-2 text-sm text-gray-600">
+            Sign in to your account to continue
+          </p>
+          
+          {/* Company ID Display */}
+          {companyId && (
+            <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-xs text-blue-700">
+                <span className="font-medium">Company ID:</span> {companyId}
+              </p>
+              <p className="text-xs text-blue-600 mt-1">
+                This ID will be used consistently across all features
+              </p>
             </div>
           )}
+        </div>
 
+        {/* Google Sign-In Button */}
+        <div className="mb-6">
+          <div 
+            id="google-signin-button" 
+            className="w-full flex justify-center"
+            style={{
+              transform: 'scale(1.2)',
+              transformOrigin: 'center',
+              margin: '20px 0'
+            }}
+          ></div>
+        </div>
+
+        {/* Divider */}
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-300" />
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-2 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 text-gray-500">
+              Or continue with email
+            </span>
+          </div>
+        </div>
+
+        {/* Sign-in Form */}
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                Email address
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                placeholder="Enter your email"
+              />
+            </div>
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                Password
+              </label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                autoComplete="current-password"
+                required
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                placeholder="Enter your password"
+              />
+            </div>
+          </div>
+
+          {/* Error and Success Messages */}
           {error && (
-            <div className="rounded-lg bg-red-50 border border-red-200 p-4 mb-6">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                  </svg>
-                </div>
+            <div className="rounded-md bg-red-50 p-4">
+              <div className="flex">
                 <div className="ml-3">
-                  <p className="text-sm font-medium text-red-800">{error}</p>
+                  <h3 className="text-sm font-medium text-red-800">{error}</h3>
                 </div>
               </div>
             </div>
           )}
 
           {success && (
-            <div className="rounded-lg bg-blue-50 border border-blue-200 p-4 mb-6">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
-                </div>
+            <div className="rounded-md bg-green-50 p-4">
+              <div className="flex">
                 <div className="ml-3">
-                  <p className="text-sm font-medium text-blue-800">{success}</p>
+                  <h3 className="text-sm font-medium text-green-800">{success}</h3>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Google Sign-In Button */}
-          <div className="mb-6">
-            <div 
-              id="google-signin-button" 
-              className="w-full flex justify-center"
-              style={{
-                transform: 'scale(1.2)',
-                transformOrigin: 'center',
-                margin: '20px 0'
-              }}
-            ></div>
+          {/* Submit Button */}
+          <div>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+            >
+              {isLoading ? (
+                <div className="flex items-center">
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                  Signing in...
+                </div>
+              ) : (
+                'Sign in'
+              )}
+            </button>
           </div>
 
-          <div className="relative mb-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-border/30" />
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-card text-muted-foreground">Or continue with email</span>
-            </div>
-          </div>
-
-          <form className="space-y-6" onSubmit={handleSubmit}>
-            <div className="space-y-5">
-              <div>
-                <label htmlFor="email" className="block text-sm font-semibold text-foreground mb-2">
-                  Email address
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg className="h-5 w-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
-                    </svg>
-                  </div>
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    autoComplete="email"
-                    required
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    placeholder="Enter your email"
-                    disabled={isLoading}
-                    className="pl-10 h-12 bg-background/50 border-border/50 focus:border-primary/50 focus:ring-primary/20"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="password" className="block text-sm font-semibold text-foreground mb-2">
-                  Password
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg className="h-5 w-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                    </svg>
-                  </div>
-                  <Input
-                    id="password"
-                    name="password"
-                    type="password"
-                    autoComplete="current-password"
-                    required
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    placeholder="Enter your password"
-                    disabled={isLoading}
-                    className="pl-10 h-12 bg-background/50 border-border/50 focus:border-primary/50 focus:ring-primary/20"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="text-sm">
-                <Link href="/auth/forgot-password" className="font-medium text-primary hover:text-primary/80 transition-colors">
-                  Forgot your password?
-                </Link>
-              </div>
-            </div>
-
-            <div>
-              <Button
-                type="submit"
-                disabled={isLoading}
-                className="w-full h-12 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
-              >
-                {isLoading ? (
-                  <div className="flex items-center space-x-2">
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    <span>Signing in...</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center space-x-2">
-                    <span>Sign in</span>
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                    </svg>
-                  </div>
-                )}
-              </Button>
-            </div>
-
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-border/30" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-card text-muted-foreground">New to {APP_NAME}?</span>
-              </div>
-            </div>
-
-            <div className="text-center">
-              <Link 
-                href={URLS.SIGNUP} 
-                className="inline-flex items-center justify-center w-full h-12 px-4 py-2 border-2 border-primary/20 text-primary bg-primary/5 hover:bg-primary/10 font-semibold rounded-xl transition-all duration-200 hover:border-primary/40"
-              >
-                Create new account
+          {/* Sign up link */}
+          <div className="text-center">
+            <p className="text-sm text-gray-600">
+              Don't have an account?{' '}
+              <Link href={URLS.SIGNUP} className="font-medium text-blue-600 hover:text-blue-500 transition-colors duration-200">
+                Sign up here
               </Link>
-            </div>
-          </form>
-        </div>
+            </p>
+          </div>
+        </form>
       </div>
     </div>
   );

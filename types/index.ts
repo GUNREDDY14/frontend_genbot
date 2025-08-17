@@ -1,11 +1,18 @@
 // GenBotAI - Core Type Definitions
 
-// User & Authentication Types
+// User Types
 export interface User {
   id: string;
   email: string;
   name?: string;
   image?: string;
+  companyId: string;
+  companyName?: string;
+  websiteUrl?: string;
+  companyType?: string;
+  onboardingCompleted: boolean;
+  isEmailVerified: boolean;
+  otpVerified: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

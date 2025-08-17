@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Search, TrendingUp, Target, Lightbulb, CheckCircle, AlertCircle, Clock, BarChart3, Plus } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
+import { generateUUID } from '@/utils';
 
 interface SEOAnalysisData {
   type: string;
@@ -17,29 +18,30 @@ interface SEOAnalysisData {
 
 export default function SEOAnalysisPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, companyId } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [seoData, setSeoData] = useState<SEOAnalysisData | null>(null);
-  const [companyId, setCompanyId] = useState<string>('');
   const [chatbotId, setChatbotId] = useState<string>('');
   const [threadId, setThreadId] = useState<string>('');
 
-  // Generate UUIDs for the session
-  const generateUUID = () => {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-      const r = Math.random() * 16 | 0;
-      const v = c == 'x' ? r : (r & 0x3 | 0x8);
-      return v.toString(16);
-    });
-  };
-
   // Initialize UUIDs on component mount
   useEffect(() => {
-    if (!companyId) setCompanyId(generateUUID());
     if (!chatbotId) setChatbotId(generateUUID());
     if (!threadId) setThreadId(generateUUID());
   }, []);
+
+  // Check if companyId is available
+  useEffect(() => {
+    if (!companyId) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to use SEO analysis.",
+        variant: "destructive"
+      });
+      router.push('/auth/signin');
+    }
+  }, [companyId, router, toast]);
 
   const fetchSEOAnalysis = async () => {
     setIsLoading(true);

@@ -26,7 +26,7 @@ export default function SignUpPage() {
   const [success, setSuccess] = useState('');
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login, googleLogin, companyId } = useAuth();
+  const { login, googleLogin } = useAuth();
   const message = searchParams.get('message');
 
   const handleCredentialResponse = useCallback(async (response: GoogleCredentialResponse) => {
@@ -159,18 +159,6 @@ export default function SignUpPage() {
           <p className="mt-2 text-sm text-gray-600">
             Join thousands of users building AI-powered solutions
           </p>
-          
-          {/* Company ID Display */}
-          {companyId && (
-            <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-xs text-blue-700">
-                <span className="font-medium">Company ID:</span> {companyId}
-              </p>
-              <p className="text-xs text-blue-600 mt-1">
-                This ID will be used consistently across all features
-              </p>
-            </div>
-          )}
         </div>
 
         {/* Google Sign-In Button */}

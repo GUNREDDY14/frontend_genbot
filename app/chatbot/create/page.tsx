@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Bot, Settings, Palette, Eye, Plus, Trash2, Sparkles, Zap, Globe, MessageCircle, Upload, FileText, X, Mic, MicOff, Volume2 } from "lucide-react";
+import { generateUUID } from '@/utils';
 
 interface ChatbotFormData {
   name: string;
@@ -141,17 +142,8 @@ export default function CreateChatbotPage() {
     }
   };
 
-  // Generate random UUID for chatbot_id and thread_id
-  const generateUUID = () => {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-      const r = Math.random() * 16 | 0;
-      const v = c == 'x' ? r : (r & 0x3 | 0x8);
-      return v.toString(16);
-    });
-  };
-
   // Initialize UUIDs on component mount
-  React.useEffect(() => {
+  useEffect(() => {
     if (!chatbotId) setChatbotId(generateUUID());
     if (!threadId) setThreadId(generateUUID());
   }, []);

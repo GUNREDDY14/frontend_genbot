@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { generateUUID } from '@/utils';
 
 interface User {
   id: string;
@@ -12,21 +13,13 @@ interface User {
 interface AuthContextType {
   user: User | null;
   companyId: string | null;
+  isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   googleLogin: (idToken: string) => Promise<void>;
   logout: () => void;
-  isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
 
 interface AuthProviderProps {
   children: ReactNode;
@@ -36,21 +29,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-
-  // Generate a unique company ID for the user
-  const generateCompanyId = (email: string): string => {
-    // Create a hash from email to ensure consistency for the same email
-    let hash = 0;
-    for (let i = 0; i < email.length; i++) {
-      const char = email.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash; // Convert to 32-bit integer
-    }
-    
-    // Convert to positive hex string and take first 8 characters
-    const positiveHash = Math.abs(hash).toString(16).padStart(8, '0');
-    return `company_${positiveHash}`;
-  };
 
   // Initialize company ID from localStorage on mount
   useEffect(() => {
@@ -67,7 +45,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Generate company ID for this user
-      const userCompanyId = generateCompanyId(email);
+      const userCompanyId = generateUUID();
       setCompanyId(userCompanyId);
       localStorage.setItem('genbot_company_id', userCompanyId);
       
@@ -96,7 +74,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const email = payload.email;
       
       // Generate company ID for this user
-      const userCompanyId = generateCompanyId(email);
+      const userCompanyId = generateUUID();
       setCompanyId(userCompanyId);
       localStorage.setItem('genbot_company_id', userCompanyId);
       
@@ -154,27 +132,37 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     
     if (storedUser && storedCompanyId) {
       try {
-        const userData = JSON.parse(storedUser);
-        setUser(userData);
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
         setCompanyId(storedCompanyId);
       } catch (error) {
-        console.error('Error parsing stored user data:', error);
+        console.error('Error parsing stored user:', error);
         localStorage.removeItem('genbot_user');
         localStorage.removeItem('genbot_company_id');
       }
     }
   }, []);
 
+  const value: AuthContextType = {
+    user,
+    companyId,
+    isLoading,
+    login,
+    googleLogin,
+    logout,
+  };
+
   return (
-    <AuthContext.Provider value={{
-      user,
-      companyId,
-      login,
-      googleLogin,
-      logout,
-      isLoading
-    }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
+};
+
+export const useAuth = (): AuthContextType => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 }; 

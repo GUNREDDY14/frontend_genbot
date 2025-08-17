@@ -51,6 +51,9 @@ model User {
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
 
+  // Company identification
+  companyId     String    @unique @map("company_id")
+
   // Onboarding fields
   companyName   String?   @map("company_name")
   websiteUrl    String?   @map("website_url")

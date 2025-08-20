@@ -1,5 +1,39 @@
 @import "tailwindcss";
 
+/* Fix for dropdown overlapping issues */
+[data-radix-popper-content-wrapper] {
+  z-index: 99999 !important;
+}
+
+/* Ensure dropdowns are not clipped by parent containers */
+.radix-select-content {
+  z-index: 99999 !important;
+  position: relative !important;
+}
+
+/* Fix for any overflow hidden issues in parent containers */
+.group {
+  overflow: visible !important;
+}
+
+/* Ensure proper stacking context for dropdowns */
+[data-radix-popper-content-wrapper] {
+  position: fixed !important;
+  z-index: 99999 !important;
+}
+
+/* Additional fixes for Select components */
+[data-radix-select-content] {
+  z-index: 99999 !important;
+  position: fixed !important;
+}
+
+/* Ensure SelectContent has proper positioning */
+.radix-select-content {
+  z-index: 99999 !important;
+  position: fixed !important;
+}
+
 :root {
   /* Light Theme Colors */
   --foreground: 0 0% 3.9%;

@@ -603,26 +603,26 @@ export default function CreateChatbotPage() {
       case 2:
         return (
           <div className="space-y-8">
-            <div className="group">
+            <div className="group relative isolate">
               <Label htmlFor="tone" className="flex items-center gap-2 text-sm font-semibold text-foreground mb-3">
                 <Settings className="w-4 h-4 text-primary" />
                 Chatbot Tone
               </Label>
               <Select value={formData.tone} onValueChange={(value) => handleInputChange('tone', value)}>
-                <SelectTrigger className="h-12 bg-background/50 border-border/50 focus:border-primary/50 focus:ring-primary/20 transition-all duration-200 group-hover:border-primary/30">
-                  <SelectValue placeholder="Select tone" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="friendly">🙂 Friendly</SelectItem>
-                  <SelectItem value="professional">💼 Professional</SelectItem>
-                  <SelectItem value="casual">😊 Casual</SelectItem>
-                  <SelectItem value="formal">🎩 Formal</SelectItem>
-                </SelectContent>
-              </Select>
+              <SelectTrigger className="h-12 bg-background/50 border-border/50 focus:border-primary/50 focus:ring-primary/20 transition-all duration-200 group-hover:border-primary/30">
+                <SelectValue placeholder="Select tone" />
+                 </SelectTrigger>
+                    <SelectContent position="popper" className="z-[1000] bg-background border-border/50 shadow-lg rounded-md">
+                <SelectItem value="friendly">🙂 Friendly</SelectItem>
+          <SelectItem value="professional">💼 Professional</SelectItem>
+        <SelectItem value="casual">😊 Casual</SelectItem>
+        <SelectItem value="formal">🎩 Formal</SelectItem>
+        </SelectContent>
+        </Select>
               <p className="text-xs text-muted-foreground mt-2">How your chatbot should communicate with users</p>
             </div>
             
-            <div className="group">
+            <div className="group relative isolate">
               <Label htmlFor="responseLength" className="flex items-center gap-2 text-sm font-semibold text-foreground mb-3">
                 <Zap className="w-4 h-4 text-primary" />
                 Response Length
@@ -631,7 +631,7 @@ export default function CreateChatbotPage() {
                 <SelectTrigger className="h-12 bg-background/50 border-border/50 focus:border-primary/50 focus:ring-primary/20 transition-all duration-200 group-hover:border-primary/30">
                   <SelectValue placeholder="Select response length" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[1000] bg-background border-border/50 shadow-lg rounded-md">
                   <SelectItem value="short">📝 Short (1-2 sentences)</SelectItem>
                   <SelectItem value="medium">📄 Medium (1 paragraph)</SelectItem>
                   <SelectItem value="long">📚 Long (Detailed responses)</SelectItem>
@@ -658,7 +658,7 @@ export default function CreateChatbotPage() {
                     </div>
               <p className="text-xs text-muted-foreground mt-2">Single URL that your chatbot can learn from to provide better answers</p>
             </div>
-
+        
             {/* File Upload Section */}
             <div className="group">
               <Label className="flex items-center gap-2 text-sm font-semibold text-foreground mb-3">
